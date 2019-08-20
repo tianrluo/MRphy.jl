@@ -1,4 +1,3 @@
-# include("utils.jl")
 
 error_ImmutableField(x) = ErrorException("`$x` is an immutable field.")
 
@@ -10,6 +9,10 @@ export AbstractPulse
 An abstract type for pulses.
 """
 abstract type AbstractPulse end
+
+## Basics
+Base.isequal(a::AbstractPulse, b::AbstractPulse) =
+  all([isequal(getproperty(a,s), getproperty(b,s)) for s in fieldnames(Pulse)])
 
 export Pulse
 """
@@ -47,14 +50,10 @@ end
 
 ## set and get
 Base.setproperty!(p::Pulse, sym::Symbol, x) = begin
-  if sym==:gr @assert(size(x,1) == size(p.rf,1))&&(size(x,2)==3) end
+  if sym==:gr @assert((size(x,1) == size(p.rf,1))&&(size(x,2)==3)) end
   if sym==:rf @assert(size(x,1) == size(p.gr,1)) end
   setfield!(p, sym, x)
 end
-
-## Other Basics
-Base.isequal(a::AbstractPulse, b::AbstractPulse) =
-  all([isequal(getproperty(a,s), getproperty(b,s)) for s in fieldnames(Pulse)])
 
 #= Spin =#
 
@@ -87,6 +86,7 @@ Base.size(spa::AbstractSpinArray, d) = (d ≤ length(spa.dim)) ? spa.dim[d] : 1
 Base.isequal(a::AbstractSpinArray, b::AbstractSpinArray) =
   all([isequal(getproperty.((a,b),s)...) for s in fieldnames(mSpinArray)])
 
+## Concrete mSpinArray
 export mSpinArray
 """
     mSpinArray
@@ -108,8 +108,8 @@ are not intrinsic to spins, and can change over time. Unincluding them allows
 extensional subtypes specialized for, e.g., arterial spin labelling.
 
 # Usages
-    spinarray = mSpinArray(dim::Dims, T1, T2, γ; M)
-    spinarray = mSpinArray(mask::BitArray, T1, T2, γ; M)
+    spinarray = mSpinArray(dim::Dims; T1, T2, γ, M)
+    spinarray = mSpinArray(mask::BitArray; T1, T2, γ, M)
 """
 mutable struct mSpinArray <: AbstractSpinArray
   # *Immutable*:
@@ -119,20 +119,20 @@ mutable struct mSpinArray <: AbstractSpinArray
   T1 ::TypeND(T0D, [0,1])
   T2 ::TypeND(T0D, [0,1])
   γ  ::TypeND(Γ0D, [0,1])
-  M  ::TypeND(Real, [2])
+  M  ::TypeND(AbstractFloat, [2])
 
-  function mSpinArray(mask::BitArray, T1=1.47u"s", T2=0.07u"s", γ=γ¹H;
-                      M=[0 0 1])
+  function mSpinArray(mask::BitArray;
+                      T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
     dim = size(mask)
     nM = prod(dim)
+    M = eltype(M)<:AbstractFloat ? M : float(M)
     if size(M,1)==1 M=repeat(M, nM, 1) end
     @assert(all(map(x->(size(x,1) ∈ (1,nM)), [T1,T2,γ,M])))
 
     return new(dim, mask, T1, T2, γ, M)
   end
 
-  mSpinArray(dim::Dims=(1,), a...; kw...) =
-    mSpinArray(trues(dim), a...; kw...)
+  mSpinArray(dim::Dims=(1,); kw...) = mSpinArray(trues(dim); kw...)
 
 end
 
@@ -161,6 +161,7 @@ Base.size(cb::AbstractSpinCube, a...) = Base.size(cb.spinarray, a...)
 Base.isequal(a::AbstractSpinCube, b::AbstractSpinCube) =
   all([isequal(getproperty.((a,b),s)...) for s in fieldnames(mSpinCube)])
 
+## Concrete mSpinCube
 export mSpinCube
 """
     mSpinCube
@@ -193,18 +194,17 @@ mutable struct mSpinCube <: AbstractSpinCube
   function mSpinCube(mask::BitArray{3}, fov;
                      ofst=Quantity.((0,0,0), u"cm"), Δf=0u"Hz",
                      T1=1.47u"s", T2=0.07u"s", γ=γ¹H)
-    spa = mSpinArray(mask, T1, T2, γ)
+    spa = mSpinArray(mask; T1=T1, T2=T2, γ=γ)
     loc = CartesianLocations(spa.dim)./reshape([(spa.dim./fov)...], 1,:)
     return new(spa, fov, ofst, loc, Δf)
   end
 
-  mSpinCube(dim::Dims{3}, a...; kw...) =
-    mSpinCube(trues(dim), a...; kw...)
+  mSpinCube(dim::Dims{3}, a...; kw...) = mSpinCube(trues(dim), a...; kw...)
 
 end
 
 #= Bolus (*Under Construction*) =#
-
+# TODO
 # export AbstractSpinBolus
 """
     AbstractSpinBolus <: AbstractSpinArray
@@ -224,6 +224,7 @@ Base.size(bl::AbstractSpinBolus, a...) = Base.size(bl.spinarray, a...)
 Base.isequal(a::AbstractSpinBolus, b::AbstractSpinBolus) =
   all([isequal(getproperty.((a,b),s)...) for s in fieldnames(mSpinBolus)])
 
+## Concrete mSpinBolus
 # export mSpinBolus
 """
     mSpinBolus
@@ -234,4 +235,93 @@ mutable struct mSpinBolus <: AbstractSpinBolus
   # *Immutable*:
   # *Mutable*:
 end
+
+#= mObjects utils =#
+
+export Pulse2B
+"""
+    B = Pulse2B(pulse::Pulse, loc; Δf, b1Map, γ)
+Turn struct `Pulse` into effective magnetic, 𝐵, field.
+"""
+Pulse2B(p::Pulse, loc; kw...) = rfgr2B(p.rf, p.gr, loc; kw...)
+
+"""
+    B = Pulse2B(pulse::Pulse, spa::AbstractSpinArray, loc; Δf, b1Map)
+...with `γ=spa.γ`.
+"""
+Pulse2B(p::Pulse, spa::AbstractSpinArray, loc; kw...) =
+  Pulse2B(p, loc; γ=spa.γ, kw...)
+
+"""
+    B = Pulse2B(pulse::Pulse, cb::AbstractSpinCube; b1Map)
+...with `loc, Δf, γ = cb.loc, cb.Δf, cb.γ`.
+"""
+Pulse2B(p::Pulse, cb::AbstractSpinCube; kw...) =
+  Pulse2B(p, cb.loc, cb.Δf; γ=cb.γ, kw...)
+
+export applyPulse, applyPulse!
+"""
+    applyPulse(spa::AbstractSpinArray, p::Pulse, loc; Δf, b1Map, doHist)
+Turn `p` into 𝐵-effective and apply it on `spa.M`, using its own `M, T1, T2, γ`.
+"""
+applyPulse(spa::AbstractSpinArray, p::Pulse, loc; doHist=false, kw...) =
+  blochSim(spa.M, Pulse2B(p, spa, loc; kw...);
+           T1=spa.T1, T2=spa.T2, γ=spa.γ, dt=p.dt, doHist=doHist)
+
+"""
+    applyPulse!(spa::AbstractSpinArray, p::Pulse, loc; Δf, b1Map, doHist)
+Update `spa.M` before return.
+"""
+applyPulse!(spa::AbstractSpinArray, p::Pulse, loc; doHist=false, kw...) = begin
+  _, Mhst = blochSim!(spa.M, Pulse2B(p, spa, loc; kw...);
+                      T1=spa.T1, T2=spa.T2, γ=spa.γ, dt=p.dt, doHist=doHist)
+  return (M=spa.M, Mhst=Mhst)
+end
+
+"""
+    applyPulse(cb::AbstractSpinCube, p::Pulse; b1Map, doHist)
+Turn `p` into 𝐵-effective and apply it on `cb.M`, using its own `M, T1, T2, γ`.
+"""
+applyPulse(cb::AbstractSpinCube, p::Pulse; b1Map=1, doHist=false) =
+  blochSim(cb.M, Pulse2B(p, cb; b1Map=b1Map);
+           T1=cb.T1, T2=cb.T2, γ=cb.γ, dt=p.dt, doHist=doHist)
+
+"""
+    applyPulse!(cb::AbstractSpinCube, p::Pulse; b1Map, doHist)
+Update `cb.M` before return.
+"""
+applyPulse!(cb::AbstractSpinCube, p::Pulse; b1Map=1, doHist=false) = begin
+  _, Mhst = blochSim!(cb.M, Pulse2B(p, cb; b1Map=b1Map);
+                      T1=cb.T1, T2=cb.T2, γ=cb.γ, dt=p.dt, doHist=doHist)
+  return (M=cb.M, Mhst=Mhst)
+end
+
+export freePrec!, freePrec
+"""
+    freePrec(spa::AbstractSpinArray, t; Δf)
+`spa::AbstractSpinArray` free precess by `t`. `spa.M` will not be updated.
+"""
+freePrec(spa::AbstractSpinArray, t::T0D; Δf::TypeND(F0D,[0,1])=0u"Hz") =
+  freePrec(spa.M, t; Δf=Δf, T1=spa.T1, T2=spa.T2)
+
+"""
+    freePrec!(spa::AbstractSpinArray, t; Δf)
+...`spa.M` will updated by the results.
+"""
+freePrec!(spa::AbstractSpinArray, t::T0D; Δf::TypeND(F0D,[0,1])=0u"Hz") =
+  freePrec!(spa.M, t; Δf=Δf, T1=spa.T1, T2=spa.T2)
+
+"""
+    freePrec(cb::AbstractSpinCube, t)
+`cb::AbstractSpinCube` free precess by `t`. `cb.M` will not be updated.
+"""
+freePrec(cb::AbstractSpinCube, t::T0D) =
+  freePrec(cb.M, t; Δf=cb.Δf, T1=cb.T1, T2=cb.T2)
+
+"""
+    freePrec!(cb::AbstractSpinCube, t)
+...`cb.M` will be updated by the results.
+"""
+freePrec!(cb::AbstractSpinCube, t::T0D) =
+  freePrec!(cb.M, t; Δf=cb.Δf, T1=cb.T1, T2=cb.T2)
 

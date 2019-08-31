@@ -17,6 +17,31 @@ using MRphy
   @test g2s(gT, dt=1u"s") ≈ [gT[1]; diff(gT, dims=1)]/1u"s"
 end
 
+@testset "SteadyStates tests" for _ = [1]
+  using MRphy.SteadyStates
+  (α, β, ϕ) = (15, 15, 0);
+  (Tg, Tf) = ((2e-3)u"s", (1e-2)u"s")
+  (TR, Δf, T1, T2) = (2e-2u"s", 0u"Hz", 1u"s", (6e-2)u"s") # α in degree
+  @test Signal.bSSFP(α; TR=TR, Δf=Δf, T1=T1, T2=T2) ≈ 0.0808
+  @test Signal.SPGR(α; TR=TR, T1=T1) ≈ 0.096332419
+  @test Signal.STFR(α,β; ϕ=ϕ,T1=T1,T2=T2,Tg=Tg,Tf=Tf,Δf=Δf) ≈ 0.13935003382
+
+  @test RFSpoiling.QuadPhase(3, 2) == [0, 2, 8]
+
+  C = collect(range(0; stop=90, length=2))
+  Φ = C[:].*([1:2...]'.^2/2);
+  FZ = RFSpoiling.FZstates(Φ, α; TR=TR, T1=T1, T2=T2)
+  @test FZ.Fs ≈
+    [( 0.0          -0.1769001765im) ( 0.0          -0.1289001842im);
+     ( 0.0          +0.1769001765im) ( 0.0911461943 -0.0911461943im)]
+  @test FZ.Fcs ≈
+    [( 0.0          +0.1769001765im) ( 0.0          -0.0022341470im);
+     ( 0.0          -0.1769001765im) ( 0.0015797805 -0.0015797805im)]
+  @test FZ.Zs ≈
+    [( 0.9336644254 +0.0im)          (-0.0239992483 +0.0im);
+     ( 0.9336644254 +0.0im)          ( 0.0169700312 +0.0169700312im)]
+end
+
 #= Core Features Tests =#
 M0, nt = [1. 0. 0.; 0. 1. 0.; 0. 0. 1.], 512
 nM_spa, t = size(M0,1), 0:nt-1
@@ -97,4 +122,3 @@ t_fp = (1/4/γ_unitless)u"s"
 end
 
 end
-

@@ -148,8 +148,7 @@ function B2AB(B ::Base.Generator;
   AB1 = similar(AB)
 
   # in unit, convert relaxations into losses/recovery per step
-  E1 = exp.(-dt./T1) |> x->isa(x[1], Real) ? x : uconvert.(NoUnits, x)
-  E2 = exp.(-dt./T2) |> x->isa(x[1], Real) ? x : uconvert.(NoUnits, x)
+  E1, E2 = exp.(-dt./T1), exp.(-dt./T2)
   E1₋₁ = E1 .- 1
 
   # u, ϕ = Array{Float64}(undef, nM, 3), Array{Float64}(undef, nM, 1)
@@ -210,8 +209,7 @@ function blochSim!(M ::TypeND(AbstractFloat, [2]),
                    dt::T0D=(4e-6)u"s", doHist=false)
 
   # in unit, convert relaxations into losses/recovery per step
-  E1 = exp.(-dt./T1) |> x->isa(x[1], Real) ? x : uconvert.(NoUnits, x)
-  E2 = exp.(-dt./T2) |> x->isa(x[1], Real) ? x : uconvert.(NoUnits, x)
+  E1, E2 = exp.(-dt./T1), exp.(-dt./T2)
   E1₋₁ = E1 .- 1
 
   nM = maximum([size(x,1) for x in (T1,T2,γ,first(B))])
@@ -311,14 +309,13 @@ function freePrec!(M ::TypeND(AbstractFloat,[2]),
                    T1::TypeND(T0D,[0,1])=(Inf)u"s",
                    T2::TypeND(T0D,[0,1])=(Inf)u"s")
 
-  E1 = exp.(-t./T1) |> x->isa(x[1], Real) ? x : uconvert.(NoUnits, x)
-  E2 = exp.(-t./T2) |> x->isa(x[1], Real) ? x : uconvert.(NoUnits, x)
+  E1, E2 = exp.(-t./T1), exp.(-t./T2)
 
   M[:,1:2] .*= E2
   M[:,3]   .*= E1
   M[:,3]   .+= 1 .- E1
 
-  eΔθ = exp.(-1im*2π*Δf*t) |> x->isa(x[1], Complex) ? x : uconvert.(NoUnits, x)
+  eΔθ = exp.(-1im*2π*Δf*t)
 
   M[:,1:2] .= ((view(M,:,1)+1im*view(M,:,2)).*eΔθ |> x->[real(x) imag(x)])
 

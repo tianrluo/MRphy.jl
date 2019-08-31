@@ -66,6 +66,7 @@ const γ¹H = 4257.6u"Hz/Gauss"
 # called by the sub-scripts.
 
 include("utils.jl")
+include("SteadyStates.jl")
 include("blochSim.jl")
 include("mObjects.jl")
 

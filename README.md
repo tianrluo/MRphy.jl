@@ -8,4 +8,4 @@ It is largely inspired by [BlochSim.jl](https://github.com/StevenWhitaker/BlochS
 
 ## Usage
 
-Check [test/runtests.jl](https://github.com/tianrluo/MRphy.jl/tree/test/runtests.jl) to see usages of this early version module.
+Check [test/runtests.jl](https://github.com/tianrluo/MRphy.jl/blob/master/test/runtests.jl) to see usages of this early version module.

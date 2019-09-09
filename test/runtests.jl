@@ -2,6 +2,7 @@ using Test
 using Unitful, UnitfulMR
 
 using MRphy
+using MRphy.utils
 
 @time begin
 
@@ -53,26 +54,29 @@ rf = (10*(cos.(t/nt*2π) + sin.(t/nt*2π)im))u"Gauss"
 gr = [ones(nt) zeros(nt) (10*atan.(t.-round(nt/2))/π)]u"Gauss/cm"
 dt, des = 4e-6u"s", "test pulse"
 
-p    = Pulse(rf; dt=dt, des=des)
+p    = Pulse(copy(rf); dt=copy(dt), des=des)
 p.gr = gr; # split here to hit `setproperty!` for coverage
-spa  = mSpinArray(trues((nM_spa,1)); γ=γ, M=M0)
+spa  = mSpinArray(trues((nM_spa,1)); γ=copy(γ), M=copy(M0))
 cube = mSpinCube(trues((3,3,1)), fov)
+cube.Δf = 0u"Hz"
 
 @testset "mObjects tests" for _ = [1] # setting _ = [1] shuts down this testset
 
   @testset "`AbstractPulse` constructor" for _ = [1]
-    @test isequal(p, Pulse(p.rf, p.gr; dt=dt,des=des))
-    @test p != Pulse(p.rf, p.gr; dt=dt,des=des)
+    @test isequal(p, Pulse(copy(p.rf), copy(p.gr); dt=copy(dt),des=des))
+    @test p != Pulse(copy(p.rf), copy(p.gr); dt=copy(dt),des=des)
   end
 
   @testset "`AbstractSpinArray` constructor" for _ = [1]
-    @test isequal(spa, mSpinArray(spa.mask; M=spa.M))
-    @test isequal(spa, mSpinArray(size(spa); M=spa.M))
+    @test isequal(spa, mSpinArray(copy(spa.mask); M=copy(spa.M)))
+    @test isequal(spa, mSpinArray(size(spa); M=copy(spa.M)))
+    @test isequal(size(spa, 1), size(spa)[1])
   end
 
   @testset "`AbstractSpnCube` constructor" for _ = [1]
-    @test isequal(cube, mSpinCube(cube.mask, fov))
-    @test isequal(cube, mSpinCube(cube.dim, fov))
+    @test isequal(cube, mSpinCube(copy(cube.mask), fov))
+    @test isequal(cube, mSpinCube(size(cube), fov))
+    @test_throws ArgumentError cube.fov = fov # cube.fov should be immutable
   end
 
 end
@@ -90,7 +94,10 @@ loc = [loc_x loc_y loc_z]
 t_fp = (1/4/γ_unitless)u"s"
 
 @testset "blochSim tests" for _ = [1] # setting _ = [] shuts down this testset
-  Mo, _ = applyPulse(spa, p, loc; Δf=Δf, b1Map=b1Map, doHist=false)
+  Mo1, _ = applyPulse!(spa, p, loc; Δf=Δf, b1Map=b1Map, doHist=false)
+  Mo1 = copy(Mo1)
+  spa.M .= copy(M0)
+  Mo,  _ = applyPulse(spa, p, loc; Δf=Δf, b1Map=b1Map, doHist=false)
 
   Beff = cat(Pulse2B(p, loc; Δf=Δf, b1Map=b1Map, γ=spa.γ)...; dims=3)
   @test Beff == cat(rfgr2B(p.rf, p.gr, loc; Δf=Δf, b1Map=b1Map, γ=spa.γ)...;
@@ -104,7 +111,7 @@ t_fp = (1/4/γ_unitless)u"s"
 
   MoAB = blochSim(M0, A, B)
 
-  @test Mo ≈ Mhst[:,:,end] ≈ MoAB ≈ X ≈
+  @test Mo ≈ Mo1 ≈ Mhst[:,:,end] ≈ MoAB ≈ X ≈
         [ 0.559535641648385  0.663342640621335  0.416341441715101;
           0.391994737048090  0.210182892388552 -0.860954821972489;
          -0.677062008711222  0.673391604920576 -0.143262993311057]
@@ -117,7 +124,11 @@ t_fp = (1/4/γ_unitless)u"s"
 
   M0f[:,1:2] .= eΔθ.*(M0f[:,1]+1im*M0f[:,2]) |> x->[real(x) imag(x)]
 
-  @test freePrec(spa, t_fp; Δf=Δf) ≈ M0f
+  M_fp = copy(freePrec!(spa, t_fp; Δf=Δf))
+  spa.M .= copy(M0)
+
+  @test M_fp ≈ freePrec(spa, t_fp; Δf=Δf) ≈ M0f
+  spa.M .= copy(M0)
 
 end
 

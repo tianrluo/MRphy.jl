@@ -1,6 +1,5 @@
 export SteadyStates
 """
-    SteadyStates
 Some steady state properties of common sequences.
 """
 module SteadyStates
@@ -9,7 +8,6 @@ using ..Unitful, ..UnitfulMR
 
 export Signal
 """
-    Signal
 Analytical expressions of common steady states sequences signals.
 """
 module Signal
@@ -29,6 +27,8 @@ using ..Unitful, ..UnitfulMR
 - `T2::T0D` (1,), transverse relaxation coefficient;
 *OUTPUTS*:
 - `sig::Complex` (1,), steady-state signal.
+
+See also: [`SPGR`](@ref), [`STFR`](@ref).
 """
 function bSSFP(α::Real;
                TR::T0D,
@@ -52,6 +52,8 @@ end
 - `T1::T0D` (1,), longitudinal relaxation coefficient;
 *OUTPUTS*:
 - `sig::Real` (1,), steady-state signal.
+
+See also: [`bSSFP`](@ref), [`STFR`](@ref).
 """
 SPGR(α::Real; TR::T0D, T1::T0D=1u"s") =
   sind(α) * (1-exp(-TR/T1))/(1-cosd(α)*exp(-TR/T1));
@@ -72,6 +74,8 @@ SPGR(α::Real; TR::T0D, T1::T0D=1u"s") =
 - `Tf::T0D` (1,), duration of free precession in each TR;
 *OUTPUTS*:
 - `sig::Real` (1,), steady-state signal.
+
+See also: [`bSSFP`](@ref), [`SPGR`](@ref).
 """
 function STFR(α::Real, β::Real;
               ϕ::Real=0,
@@ -92,8 +96,7 @@ end # module Signal
 
 export RFSpoiling
 """
-    RFSpoiling
-Tools for simulating rf spoiling in gradient echo sequences.
+Tools for simulating RF spoiling in gradient echo sequences.
 """
 module RFSpoiling
 using ..MRphy

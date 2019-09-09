@@ -18,4 +18,5 @@
 *arch/
 *.vscode/
 *.ipynb_checkpoints/
+docs/build/
 

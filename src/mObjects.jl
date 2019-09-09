@@ -1,12 +1,13 @@
-
-error_ImmutableField(x) = ErrorException("`$x` is an immutable field.")
+"""Throw `ArgumentError` when `\$x` is an immutable field."""
+ExceptionImmutableField(x) = ArgumentError("`$x` is an immutable field.")
 
 #= Pulse =#
 
 export AbstractPulse
 """
-    AbstractPulse
 An abstract type for pulses.
+
+See also: [`Pulse`](@ref).
 """
 abstract type AbstractPulse end
 
@@ -16,8 +17,8 @@ Base.isequal(a::AbstractPulse, b::AbstractPulse) =
 
 export Pulse
 """
-    Pulse <: AbstractPulse
-A struct for typical MR pulses.
+    Pulse(rf, gr; dt=(4e-6)u"s", des="generic pulse")
+A struct for typical MR pulses: `Pulse <: AbstractPulse`.
 
 # Fields:
 *Mutable*:
@@ -26,8 +27,7 @@ A struct for typical MR pulses.
 - `dt::T0D` (1,), simulation temporal step size, i.e., dwell time.
 - `des::String`, an description of the pulse to be constructed.
 
-# Usages:
-    pulse = Pulse(rf, gr; dt=dt, des=des)
+See also: [`AbstractPulse`](@ref).
 """
 mutable struct Pulse <: AbstractPulse
   rf::TypeND(RF0D, [1,2])
@@ -59,18 +59,19 @@ end
 
 export AbstractSpinArray
 """
-    AbstractSpinArray
 This type keeps the essentials of magnetic spins. Its instance struct must
 contain all fields listed listed in the exemplary struct `mSpinArray`.
 
 # Misc
 Might make `AbstractSpinArray <: AbstractArray` in a future version
+
+See also: [`mSpinArray`](@ref), [`AbstractSpinCube`](@ref).
 """
 abstract type AbstractSpinArray end
 
 ## set and get
 Base.setproperty!(spa::AbstractSpinArray, s::Symbol, x) = begin
-  s ∈ (:dim, :mask) && throw(error_ImmutableField(s))
+  s ∈ (:dim, :mask) && throw(ExceptionImmutableField(s))
 
   nM = prod(spa.dim)
   if (s==:M)&&(size(x,1)==1) x=repeat(x, nM, 1) end
@@ -89,7 +90,8 @@ Base.isequal(a::AbstractSpinArray, b::AbstractSpinArray) =
 ## Concrete mSpinArray
 export mSpinArray
 """
-    mSpinArray
+    mSpinArray(dim::Dims; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
+    mSpinArray(mask::BitArray; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
 An exemplary struct instantiating `AbstractSpinArray`.
 
 # Fields:
@@ -107,9 +109,7 @@ off-resonance, `Δf`, and locations, `loc`, are intentionally unincluded, as the
 are not intrinsic to spins, and can change over time. Unincluding them allows
 extensional subtypes specialized for, e.g., arterial spin labelling.
 
-# Usages
-    spinarray = mSpinArray(dim::Dims; T1, T2, γ, M)
-    spinarray = mSpinArray(mask::BitArray; T1, T2, γ, M)
+See also: [`AbstractSpinArray`](@ref).
 """
 mutable struct mSpinArray <: AbstractSpinArray
   # *Immutable*:
@@ -140,15 +140,17 @@ end
 
 export AbstractSpinCube
 """
-    AbstractSpinCube <: AbstractSpinArray
+`AbstractSpinCube <: AbstractSpinArray`.
 This type inherits `AbstractSpinArray` as a field. Its instance struct must
 contain all fields listed in the exemplary struct `mSpinCube`.
+
+See also: [`AbstractSpinArray`](@ref), [`mSpinCube`](@ref).
 """
 abstract type AbstractSpinCube <: AbstractSpinArray end
 
 ## set and get
 Base.setproperty!(cb::AbstractSpinCube, s::Symbol, x) = begin
-  s ∈ (:spinarray,:fov,:ofst,:loc) && throw(error_ImmutableField(s))
+  s ∈ (:spinarray,:fov,:ofst,:loc) && throw(ExceptionImmutableField(s))
   s ∈ fieldnames(typeof(cb)) ? setfield!(cb, s,x) : setfield!(cb.spinarray, s,x)
 end
 
@@ -164,7 +166,10 @@ Base.isequal(a::AbstractSpinCube, b::AbstractSpinCube) =
 ## Concrete mSpinCube
 export mSpinCube
 """
-    mSpinCube
+    spincube = mSpinCube(dim::Dims{3}, fov; ofst, Δf, T1, T2, γ)
+    spincube = mSpinCube(mask::BitArray{3}, fov; ofst, Δf, T1, T2, γ)
+`dim`, `mask`, `T1`, `T2`, and `γ` are passed to `mSpinArray` constructors.
+
 An exemplary struct instantiating `AbstractSpinCube`, designed to model a set of
 regularly spaced spins, e.g., a volume.
 
@@ -177,10 +182,7 @@ regularly spaced spins, e.g., a volume.
 *Mutable*:
 - `Δf::TypeND(F0D, [0,1])` (1,) or (nM,): off-resonance map.
 
-# Usages
-    spincube = mSpinCube(dim::Dims{3}, fov; ofst, Δf, T1, T2, γ)
-    spincube = mSpinCube(mask::BitArray{3}, fov; ofst, Δf, T1, T2, γ)
-`dim`, `mask`, `T1`, `T2`, and `γ` are passed to `mSpinArray` constructors.
+See also: [`AbstractSpinCube`](@ref).
 """
 mutable struct mSpinCube <: AbstractSpinCube
   # *Immutable*:
@@ -207,9 +209,13 @@ end
 # TODO
 # export AbstractSpinBolus
 """
-    AbstractSpinBolus <: AbstractSpinArray
+*UNDER CONSTRUCTION*
+
+`AbstractSpinBolus <: AbstractSpinArray`.
 This type inherits `AbstractSpinArray` as a field. Its instance struct must
 contain all fields listed in the exemplary struct `mSpinBolus`.
+
+See also: [`AbstractSpinArray`](@ref), [`mSpinBolus`](@ref).
 """
 abstract type AbstractSpinBolus <: AbstractSpinArray end
 
@@ -227,9 +233,12 @@ Base.isequal(a::AbstractSpinBolus, b::AbstractSpinBolus) =
 ## Concrete mSpinBolus
 # export mSpinBolus
 """
-    mSpinBolus
+*UNDER CONSTRUCTION*
+
 An exemplary struct instantiating `AbstractSpinBolus`, designed to model a set
 of moving spins, e.g., a blood bolus in ASL context.
+
+See also: [`AbstractSpinBolus`](@ref).
 """
 mutable struct mSpinBolus <: AbstractSpinBolus
   # *Immutable*:
@@ -241,7 +250,9 @@ end
 export Pulse2B
 """
     B = Pulse2B(pulse::Pulse, loc; Δf, b1Map, γ)
-Turn struct `Pulse` into effective magnetic, 𝐵, field.
+Create effective magnetic field, 𝐵, from input `pulse`.
+
+See also: [`rfgr2B`](@ref), [`B2UΦ`](@ref), [`blochSim`](@ref).
 """
 Pulse2B(p::Pulse, loc; kw...) = rfgr2B(p.rf, p.gr, loc; kw...)
 
@@ -263,6 +274,8 @@ export applyPulse, applyPulse!
 """
     applyPulse(spa::AbstractSpinArray, p::Pulse, loc; Δf, b1Map, doHist)
 Turn `p` into 𝐵-effective and apply it on `spa.M`, using its own `M, T1, T2, γ`.
+
+See also: [`blochSim`](@ref), [`freePrec`](@ref).
 """
 applyPulse(spa::AbstractSpinArray, p::Pulse, loc; doHist=false, kw...) =
   blochSim(spa.M, Pulse2B(p, spa, loc; kw...);
@@ -300,6 +313,8 @@ export freePrec!, freePrec
 """
     freePrec(spa::AbstractSpinArray, t; Δf)
 `spa::AbstractSpinArray` free precess by `t`. `spa.M` will not be updated.
+
+See also: [`applyPulse`](@ref), [`freePrec!`](@ref).
 """
 freePrec(spa::AbstractSpinArray, t::T0D; Δf::TypeND(F0D,[0,1])=0u"Hz") =
   freePrec(spa.M, t; Δf=Δf, T1=spa.T1, T2=spa.T2)
@@ -314,6 +329,8 @@ freePrec!(spa::AbstractSpinArray, t::T0D; Δf::TypeND(F0D,[0,1])=0u"Hz") =
 """
     freePrec(cb::AbstractSpinCube, t)
 `cb::AbstractSpinCube` free precess by `t`. `cb.M` will not be updated.
+
+See also: [`applyPulse`](@ref), [`freePrec`](@ref).
 """
 freePrec(cb::AbstractSpinCube, t::T0D) =
   freePrec(cb.M, t; Δf=cb.Δf, T1=cb.T1, T2=cb.T2)

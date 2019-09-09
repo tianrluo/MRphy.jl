@@ -3,7 +3,7 @@
 # Methods for getting 𝐵-effective
 export rfgr2B
 """
-    B = rfgr2B(rf, gr, loc; Δf, b1Map, γ)
+    B = rfgr2B(rf, gr, loc=[0 0 0]u"cm"; Δf=0u"Hz", b1Map=1, γ=γ¹H)
 Turn rf, `rf`, and gradient, `gr`, into 𝐵-effective magnetic field.
 
 *INPUTS*:
@@ -17,6 +17,8 @@ Turn rf, `rf`, and gradient, `gr`, into 𝐵-effective magnetic field.
 - `γ::TypeND(Γ0D, [0,1])` (1,)  or (nM,), gyro-ratio
 *OUTPUS*:
 - `B`, generator of `TypeND(B0D, [2])` (1,1,nT), 𝐵 field.
+
+See also: [`Pulse2B`](@ref), [`blochSim`](@ref).
 
 # TODO:
 Support `loc`, `Δf`, and `b1Map` being `Base.Generators`.
@@ -45,7 +47,7 @@ function rfgr2B(rf   ::TypeND(RF0D, [1,2]),
 end
 
 #= rotation axis/angle, U/Φ =#
-export B2UΦ
+export B2UΦ, B2UΦ!
 """
     B2UΦ(B::TypeND(B0D,[2,3]); γ::TypeND(Γ0D,[0,1]), dt::T0D=4e-6u"s")
 Given 𝐵-effective, `B`, compute rotation axis/angle, `U`/`Φ`.
@@ -59,6 +61,8 @@ Given 𝐵-effective, `B`, compute rotation axis/angle, `U`/`Φ`.
 - `U::TypeND(Real, [2,3])` (1,3,(nT)) or (nM,3,(nT)), axis.
 - `Φ::TypeND(Real, [2,3])` (1,1,(nT)) or (nM,1,(nT)), angle.
 
+See also: [`B2UΦ!`](@ref), [`UΦRot!`](@ref).
+
 # Notes:
 Somehow, in-place version, `B2UΦ!(B,U,Φ; γ,dt)`, provokes more allocs in julia.
 """
@@ -67,20 +71,26 @@ Somehow, in-place version, `B2UΦ!(B,U,Φ; γ,dt)`, provokes more allocs in juli
   X = γ*dt
   U = ustrip.(Float64, unit.(X).^-1, B)
   Φ = sqrt.(sum(U.*U, dims=2))
-  U .= U./Φ .|> x->isnan(x) ? 0 : -x # negate to make: 𝐵×𝑀 → 𝑀×𝐵
-  Φ .*= ustrip.(X).*2π
+  U .= U./Φ .|> x->isnan(x) ? 0 : x
+  Φ .*= -ustrip.(X).*2π # negate to make: 𝐵×𝑀 → 𝑀×𝐵
   return (U=U, Φ=Φ)
 end
 
+"""
+    B2UΦ!(B, U; Φ, γ, dt=(4e-6)u"s")
+In-place version of `B2UΦ`. Somehow, `B2UΦ!`, provokes more allocs in julia.
+
+See also: [`B2UΦ`](@ref), [`blochSim`](@ref).
+"""
 @inline function B2UΦ!(B::TypeND(B0D, [2,3]),
-                       U::TypeND(AbstractFloat, [2,3]),
-                       Φ::TypeND(AbstractFloat, [2,3]);
-                       γ::TypeND(Γ0D, [0,1]), dt::T0D=4e-6u"s")
+                       U::TypeND(Float64, [2,3]),
+                       Φ::TypeND(Float64, [2,3]);
+                       γ::TypeND(Γ0D, [0,1]), dt::T0D=(4e-6)u"s")
   X = γ*dt
   U .= ustrip.(Float64, unit.(X).^-1, B)
   Φ .= sqrt.(sum(U.*U, dims=2))
-  U .= U./Φ .|> x->isnan(x) ? 0 : -x # negate to make: 𝐵×𝑀 → 𝑀×𝐵
-  Φ .*= ustrip.(X).*2π
+  U .= U./Φ .|> x->isnan(x) ? 0 : x # negate to make: 𝐵×𝑀 → 𝑀×𝐵
+  Φ .*= -ustrip.(X).*2π
   return (U=U, Φ=Φ)
 end
 
@@ -97,6 +107,8 @@ along its 3rd dimension. Results will overwrite into `R`.
 - `R::TypeND(AbstractFloat,[2,3])` (nM, 3, (3)), vectors rotated, i.e., results;
 *OUTPUTS*:
 - `R` the input container `R` is also returned for convenience.
+
+See also: [`UΦRot`](@ref), [`B2UΦ!`](@ref).
 """
 @inline function UΦRot!(U::TypeND(AbstractFloat,[2]),
                         Φ::TypeND(AbstractFloat,[1]),
@@ -116,13 +128,15 @@ end
 """
     UΦRot(U, Φ, V)
 Same as `UΦRot!(U, Φ, V, R)`, except not in-place.
+
+See also: [`UΦRot!`](@ref).
 """
 @inline UΦRot(U, Φ, V) = UΦRot!(U, Φ, V, copy(V))
 
 #= 𝐴, 𝐵 =#
 export B2AB
 """
-    B2AB(B; T1, T2, γ, dt)
+    B2AB(B; T1=(Inf)u"s", T2=(Inf)u"s", γ=γ¹H, dt=(4e-6)u"s")
 Turn B-effective into Hargreave's 𝐴/𝐵, mat/vec, see: doi:10.1002/mrm.1170.
 
 *INPUTS*:
@@ -135,6 +149,8 @@ Turn B-effective into Hargreave's 𝐴/𝐵, mat/vec, see: doi:10.1002/mrm.1170.
 *OUTPUTS*:
 - `A::TypeND(AbstractFloat,[3])` (nM, 3,3), `A[iM,:,:]` is the `iM`-th 𝐴.
 - `B::TypeND(AbstractFloat,[2])` (nM, 3), `B[iM,:]` is the `iM`-th 𝐵.
+
+See also: [`rfgr2B`](@ref), [`Pulse2B`](@ref).
 """
 function B2AB(B ::Base.Generator;
               T1::TypeND(T0D, [0,1])=(Inf)u"s",
@@ -177,7 +193,7 @@ end
 #= blochSim =#
 export blochSim!, blochSim
 """
-    blochSim!(M, B; T1, T2, γ, dt, doHist)
+    blochSim!(M, B; T1=(Inf)u"s",T2=(Inf)u"s",γ=γ¹H,dt=(4e-6)u"s",doHist=false)
 Old school 𝐵-effective magnetic field, `B`, based bloch simulation. Globally or
 spin-wisely apply `B` over spins, `M`. `M` will be updated by the results.
 
@@ -193,6 +209,8 @@ spin-wisely apply `B` over spins, `M`. `M` will be updated by the results.
 *OUTPUTS*:
 - `M::TypeND(Real, [2])` (nM, xyz): spins after applying `B`.
 - `Mhst::TypeND(Real, [3])` (nM, xyz, nT): spins history during `B`.
+
+See also: [`applyPulse`](@ref), [`blochSim!`](@ref).
 
 # Notes:
 1. Not much sanity check inside this function, user is responsible for
@@ -274,6 +292,8 @@ blochSim!(M, A, B) = M .= blochSim(M, A, B)
 """
     blochSim(M, B; T1, T2, γ, dt, doHist)
 Same as `blochSim!(M, B; T1,T2,γ,dt,doHist)`, `M` will not be updated.
+
+See also: [`blochSim`](@ref)
 """
 blochSim(M, B; kw...) = blochSim!(copy(M), B; kw...)
 
@@ -292,7 +312,7 @@ blochSim(M::TypeND(Integer,[2]), a...; kw...) = blochSim(float(M), a...; kw...)
 #= freePrec =#
 export freePrec!, freePrec
 """
-    freePrec!(M, t; Δf, T1, T2)
+    freePrec!(M, t; Δf=0u"Hz", T1=(Inf)u"s", T2=(Inf)u"s")
 Spins, `M`, free precess by time `t`. `M` will be updated by the results.
 
 *INPUTS*:
@@ -302,6 +322,8 @@ Spins, `M`, free precess by time `t`. `M` will be updated by the results.
 - `T1 & T2 ::TypeND(T0D, [0,1])`: Global, (1,); Spin-wise, (nM,1).
 *OUTPUTS*:
 - `M::TypeND(Real, [2])` (nM, xyz): output spins' magnetizations.
+
+See also: [`freePrec`](@ref).
 """
 function freePrec!(M ::TypeND(AbstractFloat,[2]),
                    t ::T0D;
@@ -325,6 +347,8 @@ end
 """
     freePrec(M, t; Δf, T1, T2)
 Same as `freePrec!(M, t; Δf, T1, T2)`, `M` will not be updated.
+
+See also: [`freePrec!`](@ref).
 """
 freePrec(M, t; kw...) = freePrec!(copy(M), t; kw...)
 

@@ -1,11 +1,17 @@
+"""
+Some utilities functions routinely used in MR simulations.
+"""
+module utils
 
+using ..MRphy
+using ..Unitful, ..UnitfulMR
 #= General =#
 export CartesianLocations
 """
     CartesianLocations(dim::Dims, doShift::Bool=true)
 
-Retuns a `(prod(dim),length(dim))` array of grid locations. `doShift` shifts the
-locations to be consistent with `fftshift`.
+Retuns a `(prod(dim),length(dim))` sized array of grid locations. `doShift`
+shifts the locations to be consistent with `fftshift`.
 
 # Examples
 ```julia-repl
@@ -23,11 +29,14 @@ export ctrSub
 """
     ctrSub(dim::Dims) = CartesianIndex(dim .÷ 2 .+ 1)
 
-As a separate fn, ensure consistent behaviour of getting ::CartesianIndex to the
-center of a Nd-Array of size `dim`.
+As a separate function, ensure consistent behaviour of getting ::CartesianIndex
+to the center of a Nd-Array of size `dim`.
 This `center` should match `fftshift`'s `center`.
 
-See also: `ctrInd`
+See also: [`ctrInd`](@ref).
+
+# Notes:
+The function may be removed once julia FFT packages provides this functionality.
 """
 ctrSub(dim::Dims) = CartesianIndex(dim .÷ 2 .+ 1)
 
@@ -39,7 +48,7 @@ As a separate fn, ensure consistent behariour of getting the linear index to the
 center of a Nd-array of size `dim`.
 This `center` should match `fftshift`'s `center`.
 
-See also: `ctrSub`
+See also: [`ctrSub`](@ref).
 """
 ctrInd(dim::Dims) = sum((dim.÷2) .* [1; cumprod([dim[1:end-1]...])])+1
 
@@ -62,7 +71,7 @@ Gradient, `g`, of the `TxRx` k-space, (trasmit/receive, excitation/imaging).
 # Note
 The function asserts if `k` ends at the origin for `isTx==true`.
 
-See also: `g2k`
+See also: [`g2k`](@ref), [`g2s`](@ref).
 """
 k2g(k::TypeND(K0D,:), isTx::Bool=false; dt::T0D=4e-6u"s", γ::Γ0D=γ¹H) =
   (isTx&&any(ustrip.(selectdim(k,1,size(k,1))) .!=0)) ?
@@ -83,7 +92,7 @@ Compute k-space from gradient.
 *OUTPUTS*:
 - `k::TypeND(K0D, :)` (nSteps, Nd...), k-space, w/ unit u"cm^-1".
 
-See also: `k2g`
+See also: [`k2g`](@ref), [`g2s`](@ref).
 """
 g2k(g::TypeND(GR0D,:), isTx::Bool=false; dt::T0D=4e-6u"s", γ::Γ0D=γ¹H) =
   γ*dt*cumsum(g,dims=1) |> k->isTx ? k.-selectdim(k,1,size(k,1):size(k,1)) : k
@@ -101,8 +110,11 @@ Slew rate `sl`, of the gradient, `g`.
 *OUTPUTS*:
 - `sl::TypeND(Quantity{<:Real, 𝐁/𝐋/𝐓, :)` (nSteps, Nd...), slew rate
 
+See also: [`g2k`](@ref), [`k2g`](@ref).
+
 # Note
 No `s2g` is provided for the moment.
 """
 g2s(g::TypeND(GR0D,:);dt::T0D=4e-6u"s") = [selectdim(g,1,1:1);diff(g,dims=1)]/dt
 
+end # module utils

@@ -1,7 +1,7 @@
 name = "MRphy"
 uuid = "18c5d748-a4d3-11e9-30ca-051f275622c1"
 authors = ["Ray-Lab <tianrluo@users.noreply.github.com>"]
-version = "0.1.3"
+version = "0.1.4"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

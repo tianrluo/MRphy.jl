@@ -210,7 +210,7 @@ spin-wisely apply `B` over spins, `M`. `M` will be updated by the results.
 - `M::TypeND(Real, [2])` (nM, xyz): spins after applying `B`.
 - `Mhst::TypeND(Real, [3])` (nM, xyz, nT): spins history during `B`.
 
-See also: [`applyPulse`](@ref), [`blochSim!`](@ref).
+See also: [`applyPulse`](@ref), [`blochSim`](@ref).
 
 # Notes:
 1. Not much sanity check inside this function, user is responsible for
@@ -293,7 +293,7 @@ blochSim!(M, A, B) = M .= blochSim(M, A, B)
     blochSim(M, B; T1, T2, γ, dt, doHist)
 Same as `blochSim!(M, B; T1,T2,γ,dt,doHist)`, `M` will not be updated.
 
-See also: [`blochSim`](@ref)
+See also: [`blochSim!`](@ref)
 """
 blochSim(M, B; kw...) = blochSim!(copy(M), B; kw...)
 

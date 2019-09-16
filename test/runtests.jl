@@ -15,7 +15,8 @@ using MRphy.utils
   @test ctrSub((1,2,3,4,5,6)) == CartesianIndex(1,2,2,3,3,4)
   @test ctrInd.([(3,4), (4,3)]) == [8, 7] # center index of fftshift
   @test g2k(gT, true) ≈ k && k2g(k, false) ≈ gR # `≈` in case of numeric errors
-  @test g2s(gT, dt=1u"s") ≈ [gT[1]; diff(gT, dims=1)]/1u"s"
+  @test g2s(gT, dt=1u"s") ≈ 
+          ([gT[1]; diff(gT, dims=1)]/1u"s")::TypeND(SL0D,[ndims(gT)])
 end
 
 @testset "SteadyStates tests" for _ = [1]
@@ -46,7 +47,7 @@ end
 #= Core Features Tests =#
 M0, nt = [1. 0. 0.; 0. 1. 0.; 0. 0. 1.], 512
 nM_spa, t = size(M0,1), 0:nt-1
-fov = Quantity.((3,3,1), u"cm")
+fov = [3 3 1]u"cm"
 γ = γ¹H
 γ_unitless = ustrip(Float64, u"Hz/Gauss",γ)
 

@@ -14,7 +14,7 @@ module MRphy
 using LinearAlgebra
 
 using Unitful, UnitfulMR
-using Unitful: 𝐋, 𝐌, 𝐈, 𝐓, NoUnits
+using Unitful: 𝐋, 𝐌, 𝐈, 𝐓, NoUnits, Quantity
 
 # Magnetic field strength, Frequency, Gyro ratio in SI unit dimensions
 𝐁, 𝐅 = 𝐌*𝐈^-1*𝐓^-2, 𝐓^-1
@@ -49,7 +49,7 @@ Sugar for creating `<:T` typed array of arbitrary dimensions.
 TypeND(T::Type, ::Colon) = AbstractArray{<:T}
 
 ## Unitful types
-export B0D, Γ0D, L0D, K0D, T0D, F0D, GR0D, RF0D
+export B0D, Γ0D, L0D, K0D, T0D, F0D, GR0D, RF0D, SL0D
 """
     B0D = Quantity{<:Real, 𝐁}
 Type of magetic field strength. Based on
@@ -140,6 +140,19 @@ julia> (1u"Gauss/cm")::GR0D
 ```
 """
 GR0D = Quantity{<:Real, 𝐁/𝐋}
+
+"""
+    SL0D = Quantity{<:Real, 𝐁/𝐋/𝐓}
+Type of magnetic gradient. Based on
+[`Unitful.Quantity`](https://github.com/PainterQubits/Unitful.jl).
+
+# Examples:
+```julia-repl
+julia> (1u"Gauss/cm/s")::SL0D
+1 Gauss cm^-1 s^-1
+```
+"""
+SL0D = Quantity{<:Real, 𝐁/𝐋/𝐓}
 
 """
     RF0D = Quantity{<:Union{Real, Complex}, 𝐁}

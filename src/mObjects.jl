@@ -17,7 +17,6 @@ Base.isequal(a::AbstractPulse, b::AbstractPulse) =
 
 export Pulse
 """
-    Pulse(rf, gr; dt=(4e-6)u"s", des="generic pulse")
 A struct for typical MR pulses: `Pulse <: AbstractPulse`.
 
 # Fields:
@@ -26,6 +25,9 @@ A struct for typical MR pulses: `Pulse <: AbstractPulse`.
 - `gr::TypeND(GR0D, [2])` (nT, 3), where 3 accounts for x-y-z channels.
 - `dt::T0D` (1,), simulation temporal step size, i.e., dwell time.
 - `des::String`, an description of the pulse to be constructed.
+
+# Usages:
+    Pulse(rf, gr; dt=(4e-6)u"s", des="generic pulse")
 
 See also: [`AbstractPulse`](@ref).
 """
@@ -50,8 +52,8 @@ end
 
 ## set and get
 Base.setproperty!(p::Pulse, sym::Symbol, x) = begin
-  if sym==:gr @assert((size(x,1) == size(p.rf,1))&&(size(x,2)==3)) end
-  if sym==:rf @assert(size(x,1) == size(p.gr,1)) end
+  if (sym==:gr) size(x)==(size(p.rf,1),3)||throw(DimensionMismatch) end
+  if (sym==:rf) size(x,1)==size(p.gr,1)||throw(DimensionMismatch) end
   setfield!(p, sym, x)
 end
 
@@ -75,7 +77,7 @@ Base.setproperty!(spa::AbstractSpinArray, s::Symbol, x) = begin
 
   nM = prod(spa.dim)
   if (s==:M)&&(size(x,1)==1) x=repeat(x, nM, 1) end
-  if (s ∈ (:T1,:T2,:γ,:M)) @assert(size(x,1)∈(1,nM)) end
+  if (s ∈ (:T1,:T2,:γ,:M)) size(x,1)∈(1,nM)||throw(DimensionMismatch) end
 
   setfield!(spa, s, x)
 end
@@ -127,7 +129,7 @@ mutable struct mSpinArray <: AbstractSpinArray
     nM = prod(dim)
     M = eltype(M)<:AbstractFloat ? M : float(M)
     if size(M,1)==1 M=repeat(M, nM, 1) end
-    @assert(all(map(x->(size(x,1) ∈ (1,nM)), [T1,T2,γ,M])))
+    (all(map(x->(size(x,1) ∈ (1,nM)), [T1,T2,γ,M]))) || throw(DimensionMismatch)
 
     return new(dim, mask, T1, T2, γ, M)
   end
@@ -176,9 +178,9 @@ regularly spaced spins, e.g., a volume.
 # Fields:
 *Immutable*:
 - `spinarray::AbstractSpinArray` (1,): inherited `AbstractSpinArray` struct
-- `fov::NTuple{3,L0D}` (3,): field of view.
-- `ofst::NTuple{3,L0D}` (3,): fov offset from magnetic field iso-center.
-- `loc::TypeND(L0D, [2])`  (nM, 3): location of spins.
+- `fov ::TypeND(L0D, [2])` (1, 3): field of view.
+- `ofst::TypeND(L0D, [2])` (1, 3): fov offset from magnetic field iso-center.
+- `loc ::TypeND(L0D, [2])` (nM, 3): location of spins.
 *Mutable*:
 - `Δf::TypeND(F0D, [0,1])` (1,) or (nM,): off-resonance map.
 
@@ -187,17 +189,18 @@ See also: [`AbstractSpinCube`](@ref).
 mutable struct mSpinCube <: AbstractSpinCube
   # *Immutable*:
   spinarray::AbstractSpinArray
-  fov ::NTuple{3,L0D}
-  ofst::NTuple{3,L0D}
+  fov ::TypeND(L0D, [2])
+  ofst::TypeND(L0D, [2])
   loc ::TypeND(L0D, [2])
   # *Mutable*:
   Δf  ::TypeND(F0D, [0,1])
 
-  function mSpinCube(mask::BitArray{3}, fov;
-                     ofst=Quantity.((0,0,0), u"cm"), Δf=0u"Hz",
+  function mSpinCube(mask::BitArray{3}, fov::TypeND(L0D, [2]);
+                     ofst::TypeND(L0D, [2])=[0 0 0]u"cm", Δf=0u"Hz",
                      T1=1.47u"s", T2=0.07u"s", γ=γ¹H)
+    size(fov)==size(ofst)==(1,3) || throw(DimensionMismatch)
     spa = mSpinArray(mask; T1=T1, T2=T2, γ=γ)
-    loc = CartesianLocations(spa.dim)./reshape([(spa.dim./fov)...], 1,:)
+    loc = CartesianLocations(spa.dim)./(reshape([spa.dim...], 1,:)./fov) .+ ofst
     return new(spa, fov, ofst, loc, Δf)
   end
 

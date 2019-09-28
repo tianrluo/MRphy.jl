@@ -26,9 +26,6 @@ A struct for typical MR pulses: `Pulse <: AbstractPulse`.
 - `dt::T0D` (1,), simulation temporal step size, i.e., dwell time.
 - `des::String`, an description of the pulse to be constructed.
 
-# Usages:
-    Pulse(rf, gr; dt=(4e-6)u"s", des="generic pulse")
-
 See also: [`AbstractPulse`](@ref).
 """
 mutable struct Pulse <: AbstractPulse
@@ -36,18 +33,21 @@ mutable struct Pulse <: AbstractPulse
   gr::TypeND(GR0D, [2])
   dt::T0D
   des::String
+end
 
-  function Pulse(rf=missing, gr=missing; dt=4e-6u"s", des="generic pulse")
-    rf_miss, gr_miss = ismissing(rf), ismissing(gr)
-    rf_miss&&gr_miss && ErrorException("Missing both inputs.")
-    if rf_miss rf = zeros(size(gr,1))u"Gauss" end
-    if gr_miss gr = zeros(size(rf,1),3)u"Gauss/cm" end
-    size(gr,2)==3 || throw(DimensionMismatch)
+"""
+    Pulse(rf, gr; dt=(4e-6)u"s", des="generic pulse")
+Create `Pulse` object with prescribed parameters.
+"""
+function Pulse(rf=missing, gr=missing; dt=4e-6u"s", des="generic pulse")
+  rf_miss, gr_miss = ismissing(rf), ismissing(gr)
+  rf_miss&&gr_miss && ErrorException("Missing both inputs.")
+  if rf_miss rf = zeros(size(gr,1))u"Gauss" end
+  if gr_miss gr = zeros(size(rf,1),3)u"Gauss/cm" end
+  size(gr,2)==3 || throw(DimensionMismatch)
 
-    if isa(rf, Number) rf = [rf] end
-    return new(rf, gr, dt, des)
-  end
-
+  if isa(rf, Number) rf = [rf] end
+  return Pulse(rf, gr, dt, des)
 end
 
 ## set and get
@@ -92,8 +92,6 @@ Base.isequal(a::AbstractSpinArray, b::AbstractSpinArray) =
 ## Concrete mSpinArray
 export mSpinArray
 """
-    mSpinArray(dim::Dims; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
-    mSpinArray(mask::BitArray; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
 An exemplary struct instantiating `AbstractSpinArray`.
 
 # Fields:
@@ -122,21 +120,28 @@ mutable struct mSpinArray <: AbstractSpinArray
   T2 ::TypeND(T0D, [0,1])
   γ  ::TypeND(Γ0D, [0,1])
   M  ::TypeND(AbstractFloat, [2])
-
-  function mSpinArray(mask::BitArray;
-                      T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
-    dim = size(mask)
-    nM = prod(dim)
-    M = eltype(M)<:AbstractFloat ? M : float(M)
-    if size(M,1)==1 M=repeat(M, nM, 1) end
-    (all(map(x->(size(x,1) ∈ (1,nM)), [T1,T2,γ,M]))) || throw(DimensionMismatch)
-
-    return new(dim, mask, T1, T2, γ, M)
-  end
-
-  mSpinArray(dim::Dims=(1,); kw...) = mSpinArray(trues(dim); kw...)
-
 end
+
+"""
+    mSpinArray(mask::BitArray; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
+Create `mSpinArray` object with prescribed parameters, with `dim = size(mask)`.
+"""
+function mSpinArray(mask::BitArray;
+                    T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
+  dim = size(mask)
+  nM = prod(dim)
+  M = eltype(M)<:AbstractFloat ? M : float(M)
+  if size(M,1)==1 M=repeat(M, nM, 1) end
+  (all(map(x->(size(x,1) ∈ (1,nM)), [T1,T2,γ,M]))) || throw(DimensionMismatch)
+
+  return mSpinArray(dim, mask, T1, T2, γ, M)
+end
+
+"""
+    mSpinArray(dim::Dims; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
+Create `mSpinArray` object with prescribed parameters, with `mask = trues(dim)`.
+"""
+mSpinArray(dim::Dims=(1,); kw...) = mSpinArray(trues(dim); kw...)
 
 #= Cube =#
 
@@ -168,10 +173,6 @@ Base.isequal(a::AbstractSpinCube, b::AbstractSpinCube) =
 ## Concrete mSpinCube
 export mSpinCube
 """
-    spincube = mSpinCube(dim::Dims{3}, fov; ofst, Δf, T1, T2, γ)
-    spincube = mSpinCube(mask::BitArray{3}, fov; ofst, Δf, T1, T2, γ)
-`dim`, `mask`, `T1`, `T2`, and `γ` are passed to `mSpinArray` constructors.
-
 An exemplary struct instantiating `AbstractSpinCube`, designed to model a set of
 regularly spaced spins, e.g., a volume.
 
@@ -195,18 +196,28 @@ mutable struct mSpinCube <: AbstractSpinCube
   # *Mutable*:
   Δf  ::TypeND(F0D, [0,1])
 
-  function mSpinCube(mask::BitArray{3}, fov::TypeND(L0D, [2]);
-                     ofst::TypeND(L0D, [2])=[0 0 0]u"cm", Δf=0u"Hz",
-                     T1=1.47u"s", T2=0.07u"s", γ=γ¹H)
-    size(fov)==size(ofst)==(1,3) || throw(DimensionMismatch)
-    spa = mSpinArray(mask; T1=T1, T2=T2, γ=γ)
-    loc = CartesianLocations(spa.dim)./(reshape([spa.dim...], 1,:)./fov) .+ ofst
-    return new(spa, fov, ofst, loc, Δf)
-  end
-
-  mSpinCube(dim::Dims{3}, a...; kw...) = mSpinCube(trues(dim), a...; kw...)
-
 end
+
+"""
+    spincube = mSpinCube(mask::BitArray{3}, fov; ofst, Δf, T1, T2, γ)
+`dim`, `mask`, `T1`, `T2`, and `γ` are passed to `mSpinArray` constructors.
+
+Create `mSpinCube` object with prescribed parameters, with `dim = size(mask)`.
+"""
+function mSpinCube(mask::BitArray{3}, fov::TypeND(L0D, [2]);
+                   ofst::TypeND(L0D, [2])=[0 0 0]u"cm", Δf=0u"Hz",
+                   T1=1.47u"s", T2=0.07u"s", γ=γ¹H)
+  size(fov)==size(ofst)==(1,3) || throw(DimensionMismatch)
+  spa = mSpinArray(mask; T1=T1, T2=T2, γ=γ)
+  loc = CartesianLocations(spa.dim)./(reshape([spa.dim...], 1,:)./fov) .+ ofst
+  return mSpinCube(spa, fov, ofst, loc, Δf)
+end
+
+"""
+    spincube = mSpinCube(dim::Dims{3}, fov; ofst, Δf, T1, T2, γ)
+Create `mSpinCube` object with prescribed parameters, with `mask = trues(dim)`.
+"""
+mSpinCube(dim::Dims{3}, a...; kw...) = mSpinCube(trues(dim), a...; kw...)
 
 #= Bolus (*Under Construction*) =#
 # TODO

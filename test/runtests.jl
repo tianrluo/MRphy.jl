@@ -15,7 +15,7 @@ using MRphy.utils
   @test ctrInd.([(3,4), (4,3)]) == [8, 7] # center index of fftshift
   @test g2k(gT, true) ≈ k && k2g(k, false) ≈ gR # `≈` in case of numeric errors
   @test g2s(gT, dt=1) ≈ 
-          ([gT[1]; diff(gT, dims=1)]/1)::TypeND(Real,[ndims(gT)])
+          ([gT[1]; diff(gT, dims=1)]/1)::TypeND(Real,(ndims(gT),))
 end
 
 @testset "SteadyStates tests" for _ = [1]

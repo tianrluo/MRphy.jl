@@ -21,16 +21,16 @@ A struct for typical MR pulses: `Pulse <: AbstractPulse`.
 
 # Fields:
 *Mutable*:
-- `rf::TypeND(Complex, [1,2])` (nT,) or (nT, nCoils).
-- `gr::TypeND(Real, [2])` (nT, 3), where 3 accounts for x-y-z channels.
+- `rf::TypeND(Complex, (1,2))` (nT,) or (nT, nCoils).
+- `gr::TypeND(Real, 2)` (nT, 3), where 3 accounts for x-y-z channels.
 - `dt::Real` (1,), simulation temporal step size, i.e., dwell time.
 - `des::String`, an description of the pulse to be constructed.
 
 See also: [`AbstractPulse`](@ref).
 """
 mutable struct Pulse <: AbstractPulse
-  rf::TypeND(Complex, [1,2])
-  gr::TypeND(Real, [2])
+  rf::TypeND(Complex, (1,2))
+  gr::TypeND(Real, 2)
   dt::Real
   des::String
 end
@@ -99,10 +99,10 @@ An exemplary struct instantiating `AbstractSpinArray`.
 - `dim::Dims` (nd,): `nM ← prod(dim)`, dimension of the object.
 - `mask::BitArray` (nx,(ny,(nz))): Mask for `M`, `dim == (nx,(ny,(nz)))`
 *Mutable*:
-- `T1::TypeND(Real, [0,1])` (1,) or (nM,): Longitudinal relaxation coeff.
-- `T2::TypeND(Real, [0,1])` (1,) or (nM,): Transversal relaxation coeff.
-- `γ::TypeND(Real, [0,1])`  (1,) or (nM,): Gyromagnetic ratio.
-- `M::TypeND(Real, [2])`   (`count(mask)`, 3):  Magnetic spins, (𝑀x,𝑀y,𝑀z).
+- `T1::TypeND(Real, (0,1))` (1,) or (nM,): Longitudinal relaxation coeff.
+- `T2::TypeND(Real, (0,1))` (1,) or (nM,): Transversal relaxation coeff.
+- `γ::TypeND(Real, (0,1))`  (1,) or (nM,): Gyromagnetic ratio.
+- `M::TypeND(AbstractFloat, 2)` (`count(mask)`, 3):  Magnetic spins, (𝑀x,𝑀y,𝑀z).
 
 # Notes:
 off-resonance, `Δf`, and locations, `loc`, are intentionally unincluded, as they
@@ -116,10 +116,10 @@ mutable struct SpinArray <: AbstractSpinArray
   dim ::Dims
   mask::BitArray
   # *Mutable*:
-  T1::TypeND(Real, [0,1])
-  T2::TypeND(Real, [0,1])
-  γ ::TypeND(Real, [0,1])
-  M ::AbstractArray{<:AbstractFloat,2}
+  T1::TypeND(Real, (0,1))
+  T2::TypeND(Real, (0,1))
+  γ ::TypeND(Real, (0,1))
+  M ::TypeND(AbstractFloat, 2)
 end
 
 """
@@ -179,22 +179,22 @@ regularly spaced spins, e.g., a volume.
 # Fields:
 *Immutable*:
 - `spinarray::AbstractSpinArray` (1,): inherited `AbstractSpinArray` struct
-- `fov ::TypeND(Real, [2])` (1, 3): field of view.
-- `ofst::TypeND(Real, [2])` (1, 3): fov offset from magnetic field iso-center.
-- `loc ::TypeND(Real, [2])` (nM, 3): location of spins.
+- `fov ::TypeND(Real, 2)` (1, 3): field of view.
+- `ofst::TypeND(Real, 2)` (1, 3): fov offset from magnetic field iso-center.
+- `loc ::TypeND(Real, 2)` (nM, 3): location of spins.
 *Mutable*:
-- `Δf::TypeND(Real, [0,1])` (1,) or (nM,): off-resonance map.
+- `Δf::TypeND(Real, (0,1))` (1,) or (nM,): off-resonance map.
 
 See also: [`AbstractSpinCube`](@ref).
 """
 mutable struct SpinCube <: AbstractSpinCube
   # *Immutable*:
   spinarray::AbstractSpinArray
-  fov ::TypeND(Real, [2])
-  ofst::TypeND(Real, [2])
-  loc ::TypeND(Real, [2])
+  fov ::TypeND(Real, 2)
+  ofst::TypeND(Real, 2)
+  loc ::TypeND(Real, 2)
   # *Mutable*:
-  Δf  ::TypeND(Real, [0,1])
+  Δf  ::TypeND(Real, (0,1))
 end
 
 """
@@ -203,8 +203,8 @@ end
 
 Create `SpinCube` object with prescribed parameters, with `dim = size(mask)`.
 """
-function SpinCube(mask::BitArray{3}, fov::TypeND(Real, [2]);
-                   ofst::TypeND(Real, [2])=[0. 0. 0.], Δf=0.0,
+function SpinCube(mask::BitArray{3}, fov::TypeND(Real, 2);
+                   ofst::TypeND(Real, 2)=[0. 0. 0.], Δf=0.0,
                    T1=1.47, T2=0.07, γ=γ¹H)
   size(fov)==size(ofst)==(1,3) || throw(DimensionMismatch)
   spa = SpinArray(mask; T1=T1, T2=T2, γ=γ)
@@ -329,14 +329,14 @@ export freePrec!, freePrec
 
 See also: [`applyPulse`](@ref), [`freePrec!`](@ref).
 """
-freePrec(spa::AbstractSpinArray, t::Real; Δf::TypeND(Real,[0,1])=0) =
+freePrec(spa::AbstractSpinArray, t::Real; Δf::TypeND(Real,(0,1))=0) =
   freePrec(spa.M, t; Δf=Δf, T1=spa.T1, T2=spa.T2)
 
 """
     freePrec!(spa::AbstractSpinArray, t; Δf)
 ...`spa.M` will updated by the results.
 """
-freePrec!(spa::AbstractSpinArray, t::Real; Δf::TypeND(Real,[0,1])=0) =
+freePrec!(spa::AbstractSpinArray, t::Real; Δf::TypeND(Real,(0,1))=0) =
   freePrec!(spa.M, t; Δf=Δf, T1=spa.T1, T2=spa.T2)
 
 """

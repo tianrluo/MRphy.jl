@@ -15,10 +15,16 @@ Sugar for creating `Union`{`<:T` typed array of different dimensions}.
 # Usage
 *INPUTS*:
 - `T::Type` (1,), the underlying type of the union.
-- `Ns::Array{Int64,1}` (# diff dims,), an array of wanted dimensions.
+- `Ns::Dims` (ndims,), a tuple of wanted dimensions.
 """
-TypeND(T::Type, Ns::Array{Int64,1}) =
-  Union{(map(x->x==0 ? T : AbstractArray{D, x} where {D<:T}, Ns))...}
+TypeND(T::Type, Ns::Dims) =
+  Union{(map(x->x==0 ? T : AbstractArray{<:T, x}, Ns))...}
+
+"""
+    TypeND(T::Type, N::Int) = AbstractArray{<:T, N}
+sugar of consistency
+"""
+TypeND(T::Type, N::Int) = AbstractArray{<:T, N}
 
 #=
 macro TypeND(T, Ns)

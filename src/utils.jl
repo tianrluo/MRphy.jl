@@ -16,7 +16,7 @@ shifts the locations to be consistent with `fftshift`.
 # Examples
 ```julia-repl
 julia> loc = [CartesianLocations((2,2)), CartesianLocations((2,2),false)]
-2-element Array{Array{Int64,2},1}:
+2-element Array{Array{Int,2},1}:
  [-1 -1; 0 -1; -1 0; 0 0]
  [1 1; 2 1; 1 2; 2 2]
 ```

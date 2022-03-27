@@ -7,17 +7,17 @@ Old school 𝐵-effective magnetic field, `B`, based bloch simulation. Globally 
 spin-wisely apply `B` over spins, `M`. `M` will be updated by the results.
 
 *INPUTS*:
-- `M::TypeND(Real, [2])` (nM, xyz): input spins' magnetizations.
-- `B::Union{TypeND(Real, [2,3]), Base.Generator}`:
+- `M::TypeND(Real, 2)` (nM, xyz): input spins' magnetizations.
+- `B::Union{TypeND(Real, (2,3)), Base.Generator}`:
   Global, (nT,xyz); Spin-wise, (nM,xyz,nT).
 *KEYWORDS*:
-- `T1 & T2 ::TypeND(Real, [0,1])`: Global, (1,); Spin-wise, (nM,1).
-- `γ::TypeND(Real, [0,1])`: Global, (1,); Spin-wise, (nM, 1). gyro ratio
+- `T1 & T2 ::TypeND(Real, (0,1))`: Global, (1,); Spin-wise, (nM,1).
+- `γ::TypeND(Real, (0,1))`: Global, (1,); Spin-wise, (nM, 1). gyro ratio
 - `dt::Real` (1,), simulation temporal step size, i.e., dwell time.
 - `doHist::Bool`, whether to output spin history through out `B`.
 *OUTPUTS*:
-- `M::TypeND(Real, [2])` (nM, xyz): spins after applying `B`.
-- `Mhst::TypeND(Real, [3])` (nM, xyz, nT): spins history during `B`.
+- `M::TypeND(Real, 2)` (nM, xyz): spins after applying `B`.
+- `Mhst::TypeND(Real, 3)` (nM, xyz, nT): spins history during `B`.
 
 See also: [`applyPulse`](@ref), [`blochsim`](@ref).
 
@@ -28,11 +28,11 @@ See also: [`applyPulse`](@ref), [`blochsim`](@ref).
    physically spins relax continuously, this noise/nuance may worth study
    for applications like fingerprinting simulations, etc.
 """
-function blochsim!(M ::TypeND(AbstractFloat, [2]),
+function blochsim!(M ::TypeND(AbstractFloat, 2),
                    B ::Base.Generator;
-                   T1::TypeND(Real, [0,1])=Inf,
-                   T2::TypeND(Real, [0,1])=Inf,
-                   γ ::TypeND(Real, [0,1])=γ¹H,
+                   T1::TypeND(Real, (0,1))=Inf,
+                   T2::TypeND(Real, (0,1))=Inf,
+                   γ ::TypeND(Real, (0,1))=γ¹H,
                    dt::Real=(4e-6), doHist=false)
 
   # in unit, convert relaxations into losses/recovery per step
@@ -76,7 +76,7 @@ function blochsim!(M ::TypeND(AbstractFloat, [2]),
   return (M=M, Mhst=Mhst)
 end
 
-function blochsim!(M::TypeND(AbstractFloat, [2]), B::TypeND(Real, [2,3]); kw...)
+function blochsim!(M::TypeND(AbstractFloat, 2), B::TypeND(Real, (2,3)); kw...)
   if size(B,3) == 1 && size(B,1) != size(M,1)
     B = permutedims(B[:,:,:], [3,2,1])  # best practice?
     println("B not being spin-specific, assuming global")
@@ -90,11 +90,11 @@ Hargreave's 𝐴/𝐵, mat/vec, based bloch simulation. Globally or spin-wisely 
 matrix `A` and vector `B` over spins, `M`, described in doi:10.1002/mrm.1170
 
 *INPUTS*:
-- `M::TypeND(Real, [2])` (nM, xyz): input spins' magnetizations.
-- `A::TypeND(AbstractFloat,[3])` (nM, 3,3), `A[iM,:,:]` is the `iM`-th 𝐴.
-- `B::TypeND(AbstractFloat,[2])` (nM, 3), `B[iM,:]` is the `iM`-th 𝐵.
+- `M::TypeND(Real, 2)` (nM, xyz): input spins' magnetizations.
+- `A::TypeND(AbstractFloat, 3)` (nM, 3,3), `A[iM,:,:]` is the `iM`-th 𝐴.
+- `B::TypeND(AbstractFloat,2)` (nM, 3), `B[iM,:]` is the `iM`-th 𝐵.
 *OUTPUTS*:
-- `M::TypeND(Real, [2])` (nM, xyz): spins after applying `B`.
+- `M::TypeND(Real, 2)` (nM, xyz): spins after applying `B`.
 """
 blochsim!(M, A, B) = M .= blochsim(M, A, B)
 
@@ -110,13 +110,13 @@ blochsim(M, B; kw...) = blochsim!(copy(M), B; kw...)
     blochsim(M, A, B)
 Same as `blochsim(M, A, B)`, `M` will not be updated.
 """
-blochsim(M::TypeND(AbstractFloat,[2]),
-         A::TypeND(AbstractFloat,[3]),
-         B::TypeND(AbstractFloat,[2])) =
+blochsim(M::TypeND(AbstractFloat, 2),
+         A::TypeND(AbstractFloat, 3),
+         B::TypeND(AbstractFloat, 2)) =
   sum(A.*permutedims(M[:,:,:],(1,3,2));dims=3) .+ B
 
-# No inplace operation for `M::TypeND(Integer,[2])`.
-blochsim(M::TypeND(Integer,[2]), a...; kw...) = blochsim(float(M), a...; kw...)
+# No inplace operation for `M::TypeND(Integer,2)`.
+blochsim(M::TypeND(Integer, 2), a...; kw...) = blochsim(float(M), a...; kw...)
 
 #= freePrec =#
 export freePrec!, freePrec
@@ -125,20 +125,20 @@ export freePrec!, freePrec
 Spins, `M`, free precess by time `t`. `M` will be updated by the results.
 
 *INPUTS*:
-- `M::TypeND(Real, [2])` (nM, xyz): input spins' magnetizations.
+- `M::TypeND(Real, 2)` (nM, xyz): input spins' magnetizations.
 - `t::Real` (1,): duration of free precession.
 *KEYWORDS*:
-- `T1 & T2 ::TypeND(Real, [0,1])`: Global, (1,); Spin-wise, (nM,1).
+- `T1 & T2 ::TypeND(Real, (0,1))`: Global, (1,); Spin-wise, (nM,1).
 *OUTPUTS*:
-- `M::TypeND(Real, [2])` (nM, xyz): output spins' magnetizations.
+- `M::TypeND(Real, 2)` (nM, xyz): output spins' magnetizations.
 
 See also: [`freePrec`](@ref).
 """
-function freePrec!(M ::TypeND(AbstractFloat,[2]),
+function freePrec!(M ::TypeND(AbstractFloat, 2),
                    t ::Real;
-                   Δf::TypeND(Real,[0,1])=0,
-                   T1::TypeND(Real,[0,1])=Inf,
-                   T2::TypeND(Real,[0,1])=Inf)
+                   Δf::TypeND(Real,(0,1))=0,
+                   T1::TypeND(Real,(0,1))=Inf,
+                   T2::TypeND(Real,(0,1))=Inf)
 
   E1, E2 = exp.(-t./T1), exp.(-t./T2)
 

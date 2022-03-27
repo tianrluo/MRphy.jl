@@ -115,7 +115,7 @@ In practice, if dephase is a constant but not exactly m⋅2π, the resulting sta
 can be computed by convolving a sinc with the m⋅2π dephased results.
 
 *INPUTS*:
-- `Φ::TypeND(Real,[2])` (nC,nTR), nC: #`C` as `C` in `QuadPhase`. Typically, one
+- `Φ::TypeND(Real, 2)` (nC,nTR), nC: #`C` as `C` in `QuadPhase`. Typically, one
   simulates a range of `C`s, picking a `C` yielding a signal intensity equals to
   that of ideal spgr spoiling.
 - `α::Real` (1,), flip-angle.
@@ -124,13 +124,13 @@ can be computed by convolving a sinc with the m⋅2π dephased results.
 - `T1::Real` (1,), longitudinal relaxation coefficient;
 - `T2::Real` (1,), transverse relaxation coefficient;
 - `FZ::NamedTuple`, `(Fs,Fcs,Zs)`, simulate from prescribed states if given:\\
-  `Fs ::TypeND(Complex,[2])`, transversal dephasing states, 𝐹ₙ;\\
-  `Fcs::TypeND(Complex,[2])`, conjugate transversal dephasing states, 𝐹₋ₙ*;\\
-  `Zs ::TypeND(Complex,[2])`, longitudinal states, 𝑍ₙ;
+  `Fs ::TypeND(Complex, 2)`, transversal dephasing states, 𝐹ₙ;\\
+  `Fcs::TypeND(Complex, 2)`, conjugate transversal dephasing states, 𝐹₋ₙ*;\\
+  `Zs ::TypeND(Complex, 2)`, longitudinal states, 𝑍ₙ;
 *OUTPUTS*:
 - `FZ::NamedTuple`, `(Fs,Fcs,Zs)`, simulation results.
 """
-function FZstates(Φ ::TypeND(Real,[2]), α::Real;
+function FZstates(Φ ::TypeND(Real, 2), α::Real;
                   TR::Real=50e-3,
                   T1::Real=1.470,
                   T2::Real=71e-3,
@@ -152,12 +152,12 @@ function FZstates(Φ ::TypeND(Real,[2]), α::Real;
   return FZ = _FZstates(Φ, α; E1=E1, E2=E2, FZ...)
 end
 
-function _FZstates(Φ ::TypeND(AbstractFloat,[2]), α::Real;
+function _FZstates(Φ ::TypeND(AbstractFloat, 2), α::Real;
                    E1::Real,
                    E2::Real,
-                   Fs ::TypeND(Complex,[2]),
-                   Fcs::TypeND(Complex,[2]),
-                   Zs ::TypeND(Complex,[2]))
+                   Fs ::TypeND(Complex, 2),
+                   Fcs::TypeND(Complex, 2),
+                   Zs ::TypeND(Complex, 2))
   Φ .= mod.(Φ, 360)
   Φ .*= π/180
 

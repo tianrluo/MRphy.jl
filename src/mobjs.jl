@@ -21,29 +21,29 @@ A struct for typical MR pulses: `Pulse <: AbstractPulse`.
 
 # Fields:
 *Mutable*:
-- `rf::TypeND(RF0D, [1,2])` (nT,) or (nT, nCoils).
-- `gr::TypeND(GR0D, [2])` (nT, 3), where 3 accounts for x-y-z channels.
-- `dt::T0D` (1,), simulation temporal step size, i.e., dwell time.
+- `rf::TypeND(Complex, [1,2])` (nT,) or (nT, nCoils).
+- `gr::TypeND(Real, [2])` (nT, 3), where 3 accounts for x-y-z channels.
+- `dt::Real` (1,), simulation temporal step size, i.e., dwell time.
 - `des::String`, an description of the pulse to be constructed.
 
 See also: [`AbstractPulse`](@ref).
 """
 mutable struct Pulse <: AbstractPulse
-  rf::TypeND(RF0D, [1,2])
-  gr::TypeND(GR0D, [2])
-  dt::T0D
+  rf::TypeND(Complex, [1,2])
+  gr::TypeND(Real, [2])
+  dt::Real
   des::String
 end
 
 """
-    Pulse(rf, gr; dt=(4e-6)u"s", des="generic pulse")
+    Pulse(rf, gr; dt=4e-6, des="generic pulse")
 Create `Pulse` object with prescribed parameters.
 """
-function Pulse(rf=missing, gr=missing; dt=4e-6u"s", des="generic pulse")
+function Pulse(rf=missing, gr=missing; dt=4e-6, des="generic pulse")
   rf_miss, gr_miss = ismissing(rf), ismissing(gr)
   rf_miss&&gr_miss && ErrorException("Missing both inputs.")
-  if rf_miss rf = zeros(size(gr,1))u"Gauss" end
-  if gr_miss gr = zeros(size(rf,1),3)u"Gauss/cm" end
+  if rf_miss rf = zeros(size(gr,1)) end
+  if gr_miss gr = zeros(size(rf,1),3) end
   size(gr,2)==3 || throw(DimensionMismatch)
 
   if isa(rf, Number) rf = [rf] end
@@ -99,9 +99,9 @@ An exemplary struct instantiating `AbstractSpinArray`.
 - `dim::Dims` (nd,): `nM ← prod(dim)`, dimension of the object.
 - `mask::BitArray` (nx,(ny,(nz))): Mask for `M`, `dim == (nx,(ny,(nz)))`
 *Mutable*:
-- `T1::TypeND(T0D, [0,1])` (1,) or (nM,): Longitudinal relaxation coeff.
-- `T2::TypeND(T0D, [0,1])` (1,) or (nM,): Transversal relaxation coeff.
-- `γ::TypeND(Γ0D, [0,1])`  (1,) or (nM,): Gyromagnetic ratio.
+- `T1::TypeND(Real, [0,1])` (1,) or (nM,): Longitudinal relaxation coeff.
+- `T2::TypeND(Real, [0,1])` (1,) or (nM,): Transversal relaxation coeff.
+- `γ::TypeND(Real, [0,1])`  (1,) or (nM,): Gyromagnetic ratio.
 - `M::TypeND(Real, [2])`   (`count(mask)`, 3):  Magnetic spins, (𝑀x,𝑀y,𝑀z).
 
 # Notes:
@@ -111,23 +111,23 @@ extensional subtypes specialized for, e.g., arterial spin labelling.
 
 See also: [`AbstractSpinArray`](@ref).
 """
-mutable struct mSpinArray <: AbstractSpinArray
+mutable struct SpinArray <: AbstractSpinArray
   # *Immutable*:
   dim ::Dims
   mask::BitArray
   # *Mutable*:
-  T1 ::TypeND(T0D, [0,1])
-  T2 ::TypeND(T0D, [0,1])
-  γ  ::TypeND(Γ0D, [0,1])
-  M  ::TypeND(AbstractFloat, [2])
+  T1::TypeND(Real, [0,1])
+  T2::TypeND(Real, [0,1])
+  γ ::TypeND(Real, [0,1])
+  M ::AbstractArray{<:AbstractFloat,2}
 end
 
 """
-    SpinArray(mask::BitArray; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
+    SpinArray(mask::BitArray; T1=1.47, T2=0.07, γ=γ¹H, M=[0. 0. 1.])
 Create `SpinArray` object with prescribed parameters, with `dim = size(mask)`.
 """
 function SpinArray(mask::BitArray;
-                    T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
+                    T1=1.47, T2=0.07, γ=γ¹H, M=[0. 0. 1.])
   dim = size(mask)
   nM = prod(dim)
   M = eltype(M)<:AbstractFloat ? M : float(M)
@@ -138,7 +138,7 @@ function SpinArray(mask::BitArray;
 end
 
 """
-    SpinArray(dim::Dims; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
+    SpinArray(dim::Dims; T1=1.47, T2=0.07, γ=γ¹H, M=[0. 0. 1.])
 Create `SpinArray` object with prescribed parameters, with `mask = trues(dim)`.
 """
 SpinArray(dim::Dims=(1,); kw...) = SpinArray(trues(dim); kw...)
@@ -179,23 +179,22 @@ regularly spaced spins, e.g., a volume.
 # Fields:
 *Immutable*:
 - `spinarray::AbstractSpinArray` (1,): inherited `AbstractSpinArray` struct
-- `fov ::TypeND(L0D, [2])` (1, 3): field of view.
-- `ofst::TypeND(L0D, [2])` (1, 3): fov offset from magnetic field iso-center.
-- `loc ::TypeND(L0D, [2])` (nM, 3): location of spins.
+- `fov ::TypeND(Real, [2])` (1, 3): field of view.
+- `ofst::TypeND(Real, [2])` (1, 3): fov offset from magnetic field iso-center.
+- `loc ::TypeND(Real, [2])` (nM, 3): location of spins.
 *Mutable*:
-- `Δf::TypeND(F0D, [0,1])` (1,) or (nM,): off-resonance map.
+- `Δf::TypeND(Real, [0,1])` (1,) or (nM,): off-resonance map.
 
 See also: [`AbstractSpinCube`](@ref).
 """
-mutable struct mSpinCube <: AbstractSpinCube
+mutable struct SpinCube <: AbstractSpinCube
   # *Immutable*:
   spinarray::AbstractSpinArray
-  fov ::TypeND(L0D, [2])
-  ofst::TypeND(L0D, [2])
-  loc ::TypeND(L0D, [2])
+  fov ::TypeND(Real, [2])
+  ofst::TypeND(Real, [2])
+  loc ::TypeND(Real, [2])
   # *Mutable*:
-  Δf  ::TypeND(F0D, [0,1])
-
+  Δf  ::TypeND(Real, [0,1])
 end
 
 """
@@ -204,9 +203,9 @@ end
 
 Create `SpinCube` object with prescribed parameters, with `dim = size(mask)`.
 """
-function mSpinCube(mask::BitArray{3}, fov::TypeND(L0D, [2]);
-                   ofst::TypeND(L0D, [2])=[0 0 0]u"cm", Δf=0u"Hz",
-                   T1=1.47u"s", T2=0.07u"s", γ=γ¹H)
+function SpinCube(mask::BitArray{3}, fov::TypeND(Real, [2]);
+                   ofst::TypeND(Real, [2])=[0. 0. 0.], Δf=0.0,
+                   T1=1.47, T2=0.07, γ=γ¹H)
   size(fov)==size(ofst)==(1,3) || throw(DimensionMismatch)
   spa = SpinArray(mask; T1=T1, T2=T2, γ=γ)
   loc = CartesianLocations(spa.dim)./(reshape([spa.dim...], 1,:)./fov) .+ ofst
@@ -254,7 +253,7 @@ of moving spins, e.g., a blood bolus in ASL context.
 
 See also: [`AbstractSpinBolus`](@ref).
 """
-mutable struct mSpinBolus <: AbstractSpinBolus
+mutable struct SpinBolus <: AbstractSpinBolus
   # *Immutable*:
   # *Mutable*:
 end
@@ -330,14 +329,14 @@ export freePrec!, freePrec
 
 See also: [`applyPulse`](@ref), [`freePrec!`](@ref).
 """
-freePrec(spa::AbstractSpinArray, t::T0D; Δf::TypeND(F0D,[0,1])=0u"Hz") =
+freePrec(spa::AbstractSpinArray, t::Real; Δf::TypeND(Real,[0,1])=0) =
   freePrec(spa.M, t; Δf=Δf, T1=spa.T1, T2=spa.T2)
 
 """
     freePrec!(spa::AbstractSpinArray, t; Δf)
 ...`spa.M` will updated by the results.
 """
-freePrec!(spa::AbstractSpinArray, t::T0D; Δf::TypeND(F0D,[0,1])=0u"Hz") =
+freePrec!(spa::AbstractSpinArray, t::Real; Δf::TypeND(Real,[0,1])=0) =
   freePrec!(spa.M, t; Δf=Δf, T1=spa.T1, T2=spa.T2)
 
 """
@@ -346,13 +345,13 @@ freePrec!(spa::AbstractSpinArray, t::T0D; Δf::TypeND(F0D,[0,1])=0u"Hz") =
 
 See also: [`applyPulse`](@ref), [`freePrec`](@ref).
 """
-freePrec(cb::AbstractSpinCube, t::T0D) =
+freePrec(cb::AbstractSpinCube, t::Real) =
   freePrec(cb.M, t; Δf=cb.Δf, T1=cb.T1, T2=cb.T2)
 
 """
     freePrec!(cb::AbstractSpinCube, t)
 ...`cb.M` will be updated by the results.
 """
-freePrec!(cb::AbstractSpinCube, t::T0D) =
+freePrec!(cb::AbstractSpinCube, t::Real) =
   freePrec!(cb.M, t; Δf=cb.Δf, T1=cb.T1, T2=cb.T2)
 

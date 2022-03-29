@@ -4,7 +4,6 @@ Some steady state properties of common sequences.
 """
 module SteadyStates
 using ..MRphy
-using ..Unitful, ..UnitfulMR
 
 export Signal
 """
@@ -12,7 +11,6 @@ Analytical expressions of common steady states sequences signals.
 """
 module Signal
 using ..MRphy
-using ..Unitful, ..UnitfulMR
 
 """
     bSSFP(α; TR, Δf, T1, T2)
@@ -21,20 +19,20 @@ using ..Unitful, ..UnitfulMR
 *INPUTS*:
 - `α::Real` (1,), tip angle in degree;
 *KEYWORDS*:
-- `TR::T0D` (1,), repetition time;
-- `Δf::F0D` (1,), off-resonance in Hz;
-- `T1::T0D` (1,), longitudinal relaxation coefficient;
-- `T2::T0D` (1,), transverse relaxation coefficient;
+- `TR::Real` (1,), repetition time;
+- `Δf::Real` (1,), off-resonance in Hz;
+- `T1::Real` (1,), longitudinal relaxation coefficient;
+- `T2::Real` (1,), transverse relaxation coefficient;
 *OUTPUTS*:
 - `sig::Complex` (1,), steady-state signal.
 
 See also: [`SPGR`](@ref), [`STFR`](@ref).
 """
 function bSSFP(α::Real;
-               TR::T0D,
-               Δf::F0D=0u"Hz",
-               T1::T0D=1u"s",
-               T2::T0D=(6e-2)u"s")
+               TR::Real,
+               Δf::Real=0,
+               T1::Real=1,
+               T2::Real=6e-2)
   E1, E2, ϕ = exp(-TR/T1), exp(-TR/T2), 2π*Δf*TR # jmri.24163 typoed on E₁, E₂.
   C, D = E2*(E1-1)*(1+cosd(α)), (1-E1*cosd(α)) - (E1-cosd(α))*E2^2
   sig = sind(α) * (1-E1)*(1-E2*exp(-1im*ϕ)) / (C*cos(ϕ) + D)
@@ -48,14 +46,14 @@ end
 *INPUTS*:
 - `α::Real` (1,), tip angle in degree;
 *KEYWORDS*:
-- `TR::T0D` (1,), repetition time;
-- `T1::T0D` (1,), longitudinal relaxation coefficient;
+- `TR::Real` (1,), repetition time;
+- `T1::Real` (1,), longitudinal relaxation coefficient;
 *OUTPUTS*:
 - `sig::Real` (1,), steady-state signal.
 
 See also: [`bSSFP`](@ref), [`STFR`](@ref).
 """
-SPGR(α::Real; TR::T0D, T1::T0D=1u"s") =
+SPGR(α::Real; TR::Real, T1::Real=1) =
   sind(α) * (1-exp(-TR/T1))/(1-cosd(α)*exp(-TR/T1));
 
 """
@@ -67,11 +65,11 @@ SPGR(α::Real; TR::T0D, T1::T0D=1u"s") =
 - `β::Real` (1,), tip-up angle in degree;
 *KEYWORDS*:
 - `ϕ::Real` (1,), phase of the tip-up pulse in radians;
-- `Δf::F0D` (1,), off-resonance in Hz;
-- `T1::T0D` (1,), longitudinal relaxation coefficient;
-- `T2::T0D` (1,), transverse relaxation coefficient;
-- `Tg::T0D` (1,), duration of gradient crusher;
-- `Tf::T0D` (1,), duration of free precession in each TR;
+- `Δf::Real` (1,), off-resonance in Hz;
+- `T1::Real` (1,), longitudinal relaxation coefficient;
+- `T2::Real` (1,), transverse relaxation coefficient;
+- `Tg::Real` (1,), duration of gradient crusher;
+- `Tf::Real` (1,), duration of free precession in each TR;
 *OUTPUTS*:
 - `sig::Real` (1,), steady-state signal.
 
@@ -79,11 +77,11 @@ See also: [`bSSFP`](@ref), [`SPGR`](@ref).
 """
 function STFR(α::Real, β::Real;
               ϕ::Real=0,
-              Δf::F0D=0u"Hz",
-              T1::T0D=1u"s",
-              T2::T0D=(6e-2)u"s",
-              Tg::T0D=(2e-3)u"s",
-              Tf::T0D=(1e-2)u"s")
+              Δf::Real=0,
+              T1::Real=1,
+              T2::Real=6e-2,
+              Tg::Real=2e-3,
+              Tf::Real=1e-2)
   cΔϕ = cos(2π*Δf*Tf - ϕ) # θf ≔ 2π*Δf*Tf
   Eg, Ef1, Ef2 = exp(-Tg/T1), exp(-Tf/T1), exp(-Tf/T2)
   sα, cα, sβ, cβ = sind(α), cosd(α), sind(β), cosd(β)
@@ -100,7 +98,6 @@ Tools for simulating RF spoiling in gradient echo sequences.
 """
 module RFSpoiling
 using ..MRphy
-using ..Unitful, ..UnitfulMR
 """
     QuadPhase(nTR::Integer, C::Real, B::Real, A::Real)
 Quadratically cycling phases in (°): Φ(n) = mod.(C⋅n² + B⋅n + A, 360), n=0:nTR-1
@@ -123,9 +120,9 @@ can be computed by convolving a sinc with the m⋅2π dephased results.
   that of ideal spgr spoiling.
 - `α::Real` (1,), flip-angle.
 *KEYWORDS*:
-- `TR::T0D` (1,), repetition time;
-- `T1::T0D` (1,), longitudinal relaxation coefficient;
-- `T2::T0D` (1,), transverse relaxation coefficient;
+- `TR::Real` (1,), repetition time;
+- `T1::Real` (1,), longitudinal relaxation coefficient;
+- `T2::Real` (1,), transverse relaxation coefficient;
 - `FZ::NamedTuple`, `(Fs,Fcs,Zs)`, simulate from prescribed states if given:\\
   `Fs ::TypeND(Complex,[2])`, transversal dephasing states, 𝐹ₙ;\\
   `Fcs::TypeND(Complex,[2])`, conjugate transversal dephasing states, 𝐹₋ₙ*;\\
@@ -134,9 +131,9 @@ can be computed by convolving a sinc with the m⋅2π dephased results.
 - `FZ::NamedTuple`, `(Fs,Fcs,Zs)`, simulation results.
 """
 function FZstates(Φ ::TypeND(Real,[2]), α::Real;
-                  TR::T0D=(50e-3)u"s",
-                  T1::T0D=(1.470)u"s",
-                  T2::T0D=(71e-3)u"s",
+                  TR::Real=50e-3,
+                  T1::Real=1.470,
+                  T2::Real=71e-3,
                   FZ::Union{Nothing, NamedTuple}=nothing)
   if isnothing(FZ)
     (Fs, Fcs, Zs) = (zeros(Complex{Float64}, size(Φ)) for _ in 1:3)

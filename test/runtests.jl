@@ -1,5 +1,4 @@
 using Test
-using Unitful, UnitfulMR
 
 using MRphy
 using MRphy.utils
@@ -7,7 +6,7 @@ using MRphy.utils
 @time begin
 
 @testset "utils tests" for _ = [1]
-  dim, k = (2,2), [1,2,3,4,0]u"cm^-1"
+  dim, k = (2,2), [1,2,3,4,0]
   gT, gR = k2g(k, true), k2g(k, false)
   @test CartesianLocations(dim) ==
         CartesianLocations(dim,false) .- collect(Tuple(ctrSub(dim)))' ==
@@ -15,15 +14,15 @@ using MRphy.utils
   @test ctrSub((1,2,3,4,5,6)) == CartesianIndex(1,2,2,3,3,4)
   @test ctrInd.([(3,4), (4,3)]) == [8, 7] # center index of fftshift
   @test g2k(gT, true) ≈ k && k2g(k, false) ≈ gR # `≈` in case of numeric errors
-  @test g2s(gT, dt=1u"s") ≈ 
-          ([gT[1]; diff(gT, dims=1)]/1u"s")::TypeND(SL0D,[ndims(gT)])
+  @test g2s(gT, dt=1) ≈ 
+          ([gT[1]; diff(gT, dims=1)]/1)::TypeND(Real,[ndims(gT)])
 end
 
 @testset "SteadyStates tests" for _ = [1]
   using MRphy.SteadyStates
   (α, β, ϕ) = (15, 15, 0);
-  (Tg, Tf) = ((2e-3)u"s", (1e-2)u"s")
-  (TR, Δf, T1, T2) = (2e-2u"s", 0u"Hz", 1u"s", (6e-2)u"s") # α in degree
+  (Tg, Tf) = ((2e-3), (1e-2))
+  (TR, Δf, T1, T2) = (2e-2, 0, 1, (6e-2)) # α in degree
   @test Signal.bSSFP(α; TR=TR, Δf=Δf, T1=T1, T2=T2) ≈ 0.0808
   @test Signal.SPGR(α; TR=TR, T1=T1) ≈ 0.096332419
   @test Signal.STFR(α,β; ϕ=ϕ,T1=T1,T2=T2,Tg=Tg,Tf=Tf,Δf=Δf) ≈ 0.13935003382
@@ -47,19 +46,18 @@ end
 #= Core Features Tests =#
 M0, nt = [1. 0. 0.; 0. 1. 0.; 0. 0. 1.], 512
 nM_spa, t = size(M0,1), 0:nt-1
-fov = [3 3 1]u"cm"
+fov = [3. 3. 1.]
 γ = γ¹H
-γ_unitless = ustrip(Float64, u"Hz/Gauss",γ)
 
-rf = (10*(cos.(t/nt*2π) + sin.(t/nt*2π)im))u"Gauss"
-gr = [ones(nt) zeros(nt) (10*atan.(t.-round(nt/2))/π)]u"Gauss/cm"
-dt, des = 4e-6u"s", "test pulse"
+rf = (10*(cos.(t/nt*2π) + sin.(t/nt*2π)im))
+gr = [ones(nt) zeros(nt) (10*atan.(t.-round(nt/2))/π)]
+dt, des = 4e-6, "test pulse"
 
 p    = Pulse(copy(rf); dt=copy(dt), des=des)
 p.gr = gr; # split here to hit `setproperty!` for coverage
 spa  = SpinArray(trues((nM_spa,1)); γ=copy(γ), M=copy(M0))
 cube = SpinCube(trues((3,3,1)), fov)
-cube.Δf = 0u"Hz"
+cube.Δf = 0
 
 @testset "mobjs tests" for _ = [1] # setting _ = [1] shuts down this testset
 
@@ -82,17 +80,17 @@ cube.Δf = 0u"Hz"
 
 end
 
-spa.T1, spa.T2 = 1u"s", 4e-2u"s"
+spa.T1, spa.T2 = 1, 4e-2
 
 b1Map = 1
 
-loc_x = collect(range(-1., 1.; length=nM_spa))u"cm"
-loc_y, loc_z = zeros(3)u"cm", ones(3)u"cm"
+loc_x = collect(range(-1., 1.; length=nM_spa))
+loc_y, loc_z = zeros(3), ones(3)
 
 loc = [loc_x loc_y loc_z]
 
-Δf = -(ustrip.(loc_x))u"Hz" .* γ_unitless # w/ gr_x==1u"Gauss/cm", cancels Δf
-t_fp = (1/4/γ_unitless)u"s"
+Δf = -loc_x .* γ
+t_fp = (1/4/γ)
 
 @testset "blochsim tests" for _ = [1] # setting _ = [] shuts down this testset
   Mo1, _ = applyPulse!(spa, p, loc; Δf=Δf, b1Map=b1Map, doHist=false)

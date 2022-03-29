@@ -42,8 +42,8 @@ Order = [:type]
 TypeND
 rfgr2B
 Pulse2B
-blochSim
-blochSim!
+blochsim
+blochsim!
 B2AB
 B2UΦ
 B2UΦ!

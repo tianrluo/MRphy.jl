@@ -62,12 +62,12 @@ end
 export AbstractSpinArray
 """
 This type keeps the essentials of magnetic spins. Its instance struct must
-contain all fields listed listed in the exemplary struct `mSpinArray`.
+contain all fields listed listed in the exemplary struct `SpinArray`.
 
 # Misc
 Might make `AbstractSpinArray <: AbstractArray` in a future version
 
-See also: [`mSpinArray`](@ref), [`AbstractSpinCube`](@ref).
+See also: [`SpinArray`](@ref), [`AbstractSpinCube`](@ref).
 """
 abstract type AbstractSpinArray end
 
@@ -87,10 +87,10 @@ Base.size(spa::AbstractSpinArray) = spa.dim
 Base.size(spa::AbstractSpinArray, d) = (d ≤ length(spa.dim)) ? spa.dim[d] : 1
 
 Base.isequal(a::AbstractSpinArray, b::AbstractSpinArray) =
-  all([isequal(getproperty.((a,b),s)...) for s in fieldnames(mSpinArray)])
+  all([isequal(getproperty.((a,b),s)...) for s in fieldnames(SpinArray)])
 
-## Concrete mSpinArray
-export mSpinArray
+## Concrete SpinArray
+export SpinArray
 """
 An exemplary struct instantiating `AbstractSpinArray`.
 
@@ -123,10 +123,10 @@ mutable struct mSpinArray <: AbstractSpinArray
 end
 
 """
-    mSpinArray(mask::BitArray; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
-Create `mSpinArray` object with prescribed parameters, with `dim = size(mask)`.
+    SpinArray(mask::BitArray; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
+Create `SpinArray` object with prescribed parameters, with `dim = size(mask)`.
 """
-function mSpinArray(mask::BitArray;
+function SpinArray(mask::BitArray;
                     T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
   dim = size(mask)
   nM = prod(dim)
@@ -134,14 +134,14 @@ function mSpinArray(mask::BitArray;
   if size(M,1)==1 M=repeat(M, nM, 1) end
   (all(map(x->(size(x,1) ∈ (1,nM)), [T1,T2,γ,M]))) || throw(DimensionMismatch)
 
-  return mSpinArray(dim, mask, T1, T2, γ, M)
+  return SpinArray(dim, mask, T1, T2, γ, M)
 end
 
 """
-    mSpinArray(dim::Dims; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
-Create `mSpinArray` object with prescribed parameters, with `mask = trues(dim)`.
+    SpinArray(dim::Dims; T1=1.47u"s", T2=0.07u"s", γ=γ¹H, M=[0. 0. 1.])
+Create `SpinArray` object with prescribed parameters, with `mask = trues(dim)`.
 """
-mSpinArray(dim::Dims=(1,); kw...) = mSpinArray(trues(dim); kw...)
+SpinArray(dim::Dims=(1,); kw...) = SpinArray(trues(dim); kw...)
 
 #= Cube =#
 
@@ -149,9 +149,9 @@ export AbstractSpinCube
 """
 `AbstractSpinCube <: AbstractSpinArray`.
 This type inherits `AbstractSpinArray` as a field. Its instance struct must
-contain all fields listed in the exemplary struct `mSpinCube`.
+contain all fields listed in the exemplary struct `SpinCube`.
 
-See also: [`AbstractSpinArray`](@ref), [`mSpinCube`](@ref).
+See also: [`AbstractSpinArray`](@ref), [`SpinCube`](@ref).
 """
 abstract type AbstractSpinCube <: AbstractSpinArray end
 
@@ -168,10 +168,10 @@ Base.getproperty(cb::AbstractSpinCube, s::Symbol) =
 Base.size(cb::AbstractSpinCube, a...) = Base.size(cb.spinarray, a...)
 
 Base.isequal(a::AbstractSpinCube, b::AbstractSpinCube) =
-  all([isequal(getproperty.((a,b),s)...) for s in fieldnames(mSpinCube)])
+  all([isequal(getproperty.((a,b),s)...) for s in fieldnames(SpinCube)])
 
-## Concrete mSpinCube
-export mSpinCube
+## Concrete SpinCube
+export SpinCube
 """
 An exemplary struct instantiating `AbstractSpinCube`, designed to model a set of
 regularly spaced spins, e.g., a volume.
@@ -199,25 +199,25 @@ mutable struct mSpinCube <: AbstractSpinCube
 end
 
 """
-    spincube = mSpinCube(mask::BitArray{3}, fov; ofst, Δf, T1, T2, γ)
-`dim`, `mask`, `T1`, `T2`, and `γ` are passed to `mSpinArray` constructors.
+    spincube = SpinCube(mask::BitArray{3}, fov; ofst, Δf, T1, T2, γ)
+`dim`, `mask`, `T1`, `T2`, and `γ` are passed to `SpinArray` constructors.
 
-Create `mSpinCube` object with prescribed parameters, with `dim = size(mask)`.
+Create `SpinCube` object with prescribed parameters, with `dim = size(mask)`.
 """
 function mSpinCube(mask::BitArray{3}, fov::TypeND(L0D, [2]);
                    ofst::TypeND(L0D, [2])=[0 0 0]u"cm", Δf=0u"Hz",
                    T1=1.47u"s", T2=0.07u"s", γ=γ¹H)
   size(fov)==size(ofst)==(1,3) || throw(DimensionMismatch)
-  spa = mSpinArray(mask; T1=T1, T2=T2, γ=γ)
+  spa = SpinArray(mask; T1=T1, T2=T2, γ=γ)
   loc = CartesianLocations(spa.dim)./(reshape([spa.dim...], 1,:)./fov) .+ ofst
-  return mSpinCube(spa, fov, ofst, loc, Δf)
+  return SpinCube(spa, fov, ofst, loc, Δf)
 end
 
 """
-    spincube = mSpinCube(dim::Dims{3}, fov; ofst, Δf, T1, T2, γ)
-Create `mSpinCube` object with prescribed parameters, with `mask = trues(dim)`.
+    spincube = SpinCube(dim::Dims{3}, fov; ofst, Δf, T1, T2, γ)
+Create `SpinCube` object with prescribed parameters, with `mask = trues(dim)`.
 """
-mSpinCube(dim::Dims{3}, a...; kw...) = mSpinCube(trues(dim), a...; kw...)
+SpinCube(dim::Dims{3}, a...; kw...) = SpinCube(trues(dim), a...; kw...)
 
 #= Bolus (*Under Construction*) =#
 # TODO
@@ -227,9 +227,9 @@ mSpinCube(dim::Dims{3}, a...; kw...) = mSpinCube(trues(dim), a...; kw...)
 
 `AbstractSpinBolus <: AbstractSpinArray`.
 This type inherits `AbstractSpinArray` as a field. Its instance struct must
-contain all fields listed in the exemplary struct `mSpinBolus`.
+contain all fields listed in the exemplary struct `SpinBolus`.
 
-See also: [`AbstractSpinArray`](@ref), [`mSpinBolus`](@ref).
+See also: [`AbstractSpinArray`](@ref), [`SpinBolus`](@ref).
 """
 abstract type AbstractSpinBolus <: AbstractSpinArray end
 
@@ -242,10 +242,10 @@ Base.getproperty(bl::AbstractSpinBolus, s::Symbol) =
 Base.size(bl::AbstractSpinBolus, a...) = Base.size(bl.spinarray, a...)
 
 Base.isequal(a::AbstractSpinBolus, b::AbstractSpinBolus) =
-  all([isequal(getproperty.((a,b),s)...) for s in fieldnames(mSpinBolus)])
+  all([isequal(getproperty.((a,b),s)...) for s in fieldnames(SpinBolus)])
 
-## Concrete mSpinBolus
-# export mSpinBolus
+## Concrete SpinBolus
+# export SpinBolus
 """
 *UNDER CONSTRUCTION*
 
@@ -259,14 +259,14 @@ mutable struct mSpinBolus <: AbstractSpinBolus
   # *Mutable*:
 end
 
-#= mObjects utils =#
+#= mobjs utils =#
 
 export Pulse2B
 """
     B = Pulse2B(pulse::Pulse, loc; Δf, b1Map, γ)
 Create effective magnetic field, 𝐵, from input `pulse`.
 
-See also: [`rfgr2B`](@ref), [`B2UΦ`](@ref), [`blochSim`](@ref).
+See also: [`rfgr2B`](@ref), [`B2UΦ`](@ref), [`blochsim`](@ref).
 """
 Pulse2B(p::Pulse, loc; kw...) = rfgr2B(p.rf, p.gr, loc; kw...)
 
@@ -289,10 +289,10 @@ export applyPulse, applyPulse!
     applyPulse(spa::AbstractSpinArray, p::Pulse, loc; Δf, b1Map, doHist)
 Turn `p` into 𝐵-effective and apply it on `spa.M`, using its own `M, T1, T2, γ`.
 
-See also: [`blochSim`](@ref), [`freePrec`](@ref).
+See also: [`blochsim`](@ref), [`freePrec`](@ref).
 """
 applyPulse(spa::AbstractSpinArray, p::Pulse, loc; doHist=false, kw...) =
-  blochSim(spa.M, Pulse2B(p, spa, loc; kw...);
+  blochsim(spa.M, Pulse2B(p, spa, loc; kw...);
            T1=spa.T1, T2=spa.T2, γ=spa.γ, dt=p.dt, doHist=doHist)
 
 """
@@ -300,7 +300,7 @@ applyPulse(spa::AbstractSpinArray, p::Pulse, loc; doHist=false, kw...) =
 Update `spa.M` before return.
 """
 applyPulse!(spa::AbstractSpinArray, p::Pulse, loc; doHist=false, kw...) = begin
-  _, Mhst = blochSim!(spa.M, Pulse2B(p, spa, loc; kw...);
+  _, Mhst = blochsim!(spa.M, Pulse2B(p, spa, loc; kw...);
                       T1=spa.T1, T2=spa.T2, γ=spa.γ, dt=p.dt, doHist=doHist)
   return (M=spa.M, Mhst=Mhst)
 end
@@ -310,7 +310,7 @@ end
 Turn `p` into 𝐵-effective and apply it on `cb.M`, using its own `M, T1, T2, γ`.
 """
 applyPulse(cb::AbstractSpinCube, p::Pulse; b1Map=1, doHist=false) =
-  blochSim(cb.M, Pulse2B(p, cb; b1Map=b1Map);
+  blochsim(cb.M, Pulse2B(p, cb; b1Map=b1Map);
            T1=cb.T1, T2=cb.T2, γ=cb.γ, dt=p.dt, doHist=doHist)
 
 """
@@ -318,7 +318,7 @@ applyPulse(cb::AbstractSpinCube, p::Pulse; b1Map=1, doHist=false) =
 Update `cb.M` before return.
 """
 applyPulse!(cb::AbstractSpinCube, p::Pulse; b1Map=1, doHist=false) = begin
-  _, Mhst = blochSim!(cb.M, Pulse2B(p, cb; b1Map=b1Map);
+  _, Mhst = blochsim!(cb.M, Pulse2B(p, cb; b1Map=b1Map);
                       T1=cb.T1, T2=cb.T2, γ=cb.γ, dt=p.dt, doHist=doHist)
   return (M=cb.M, Mhst=Mhst)
 end

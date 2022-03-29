@@ -57,11 +57,11 @@ dt, des = 4e-6u"s", "test pulse"
 
 p    = Pulse(copy(rf); dt=copy(dt), des=des)
 p.gr = gr; # split here to hit `setproperty!` for coverage
-spa  = mSpinArray(trues((nM_spa,1)); γ=copy(γ), M=copy(M0))
-cube = mSpinCube(trues((3,3,1)), fov)
+spa  = SpinArray(trues((nM_spa,1)); γ=copy(γ), M=copy(M0))
+cube = SpinCube(trues((3,3,1)), fov)
 cube.Δf = 0u"Hz"
 
-@testset "mObjects tests" for _ = [1] # setting _ = [1] shuts down this testset
+@testset "mobjs tests" for _ = [1] # setting _ = [1] shuts down this testset
 
   @testset "`AbstractPulse` constructor" for _ = [1]
     @test isequal(p, Pulse(copy(p.rf), copy(p.gr); dt=copy(dt),des=des))
@@ -69,14 +69,14 @@ cube.Δf = 0u"Hz"
   end
 
   @testset "`AbstractSpinArray` constructor" for _ = [1]
-    @test isequal(spa, mSpinArray(copy(spa.mask); M=copy(spa.M)))
-    @test isequal(spa, mSpinArray(size(spa); M=copy(spa.M)))
+    @test isequal(spa, SpinArray(copy(spa.mask); M=copy(spa.M)))
+    @test isequal(spa, SpinArray(size(spa); M=copy(spa.M)))
     @test isequal(size(spa, 1), size(spa)[1])
   end
 
   @testset "`AbstractSpnCube` constructor" for _ = [1]
-    @test isequal(cube, mSpinCube(copy(cube.mask), fov))
-    @test isequal(cube, mSpinCube(size(cube), fov))
+    @test isequal(cube, SpinCube(copy(cube.mask), fov))
+    @test isequal(cube, SpinCube(size(cube), fov))
     @test_throws ArgumentError cube.fov = fov # cube.fov should be immutable
   end
 
@@ -94,7 +94,7 @@ loc = [loc_x loc_y loc_z]
 Δf = -(ustrip.(loc_x))u"Hz" .* γ_unitless # w/ gr_x==1u"Gauss/cm", cancels Δf
 t_fp = (1/4/γ_unitless)u"s"
 
-@testset "blochSim tests" for _ = [1] # setting _ = [] shuts down this testset
+@testset "blochsim tests" for _ = [1] # setting _ = [] shuts down this testset
   Mo1, _ = applyPulse!(spa, p, loc; Δf=Δf, b1Map=b1Map, doHist=false)
   Mo1 = copy(Mo1)
   spa.M .= copy(M0)
@@ -106,11 +106,11 @@ t_fp = (1/4/γ_unitless)u"s"
 
   A, B = B2AB(Beff; T1=spa.T1, T2=spa.T2, γ=spa.γ, dt=p.dt)
 
-  _, Mhst = blochSim(M0,Beff; T1=spa.T1,T2=spa.T2,γ=spa.γ,dt=p.dt,doHist=true);
+  _, Mhst = blochsim(M0,Beff; T1=spa.T1,T2=spa.T2,γ=spa.γ,dt=p.dt,doHist=true);
   X = copy(M0)
-  blochSim!(X, Beff; T1=spa.T1,T2=spa.T2,γ=spa.γ,dt=p.dt,doHist=true);
+  blochsim!(X, Beff; T1=spa.T1,T2=spa.T2,γ=spa.γ,dt=p.dt,doHist=true);
 
-  MoAB = blochSim(M0, A, B)
+  MoAB = blochsim(M0, A, B)
 
   @test Mo ≈ Mo1 ≈ Mhst[:,:,end] ≈ MoAB ≈ X ≈
         [ 0.559535641648385  0.663342640621335  0.416341441715101;

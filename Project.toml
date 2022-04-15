@@ -1,18 +1,10 @@
 name = "MRphy"
 uuid = "18c5d748-a4d3-11e9-30ca-051f275622c1"
-authors = ["Ray-Lab <tianrluo@users.noreply.github.com>"]
-version = "0.1.5"
+authors = ["Tianrui Luo <tianrluo@users.noreply.github.com>"]
+version = "0.2.0"
 
 [deps]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
-UnitfulMR = "84966e9a-a839-11e9-29d5-57fe5a7e36c2"
-
-[compat]
-julia = "^1.1"
-
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"

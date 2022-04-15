@@ -7,8 +7,6 @@
 This module intends to provide some basic tools for MR physics simulations.
 
 ## Installation
-`MRphy.jl` is registered. Simply install with
-
 ```julia-repl
 pkg> add MRphy
 ```

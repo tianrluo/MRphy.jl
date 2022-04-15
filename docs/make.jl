@@ -7,5 +7,7 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/tianrluo/MRphy.jl.git"
+    repo = "github.com/tianrluo/MRphy.jl.git",
+    devbranch = "dev",
+    versions = ["stable" => "v^", "v#.#.#"]
 )

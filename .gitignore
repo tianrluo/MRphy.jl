@@ -9,6 +9,7 @@
 !*.txt
 !*.md
 !*.toml
+!*.yml
 
 # even if in sub-dirs
 !*/

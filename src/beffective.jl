@@ -43,3 +43,31 @@ end
   u, ϕ = b2uϕ(SVector(b), _γdt_)
   return typeof(b)(u), ϕ
 end
+
+export rfgr2b
+"""
+"""
+function rfgr2b(
+  rf   ::AbstractVector{Complex},
+  gr   ::AbstractVector{Real},
+  loc  ::StaticVector{3, T};
+  Δf   ::Real=0.,
+  b1Map::Real=0.,
+  γ    ::Real=γ¹H,
+) where {T<:Real}
+
+  nM = maximum(map(x->size(x,1), (loc, Δf, b1Map, γ)))
+
+  Bxy_gen = b1Map==1 ?
+    @inbounds(view(rf,t,:)       |> x->repeat([real(x) imag(x)], nM)
+              for t in axes(rf,1)) :
+    @inbounds(b1Map*view(rf,t,:) |> x->       [real(x) imag(x)]
+              for t in axes(rf,1))
+
+  Bz_gen = Δf==0 ?
+    @inbounds(loc*view(gr,t,:)          for t in axes(gr,1)) :
+    @inbounds(loc*view(gr,t,:).+(Δf./γ) for t in axes(gr,1))
+
+  B_gen = @inbounds([bxy bz] for (bxy, bz) in zip(Bxy_gen, Bz_gen))
+  return B_gen
+end

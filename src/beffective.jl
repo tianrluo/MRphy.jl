@@ -46,15 +46,21 @@ end
 
 export rfgr2b
 """
+    B_gen = rfgr2b(
+      rf   ::AbstractVector{Complex{D}},
+      gr   ::AbstractVector{D},
+      loc  ::StaticVector{3, T};
+      Δf   ::Real=0.,
+      γ    ::Real=γ¹H,
+    ) where {D<:Real, T<:Real}
 """
 function rfgr2b(
-  rf   ::AbstractVector{Complex},
-  gr   ::AbstractVector{Real},
+  rf   ::AbstractVector{Complex{D}},
+  gr   ::AbstractVector{D},
   loc  ::StaticVector{3, T};
   Δf   ::Real=0.,
-  b1Map::Real=0.,
   γ    ::Real=γ¹H,
-) where {T<:Real}
+) where {D<:Real, T<:Real}
 
   nM = maximum(map(x->size(x,1), (loc, Δf, b1Map, γ)))
 
@@ -70,4 +76,16 @@ function rfgr2b(
 
   B_gen = @inbounds([bxy bz] for (bxy, bz) in zip(Bxy_gen, Bz_gen))
   return B_gen
+end
+
+
+function rfgr2b(
+  rf   ::AbstractVector{Complex},
+  gr   ::AbstractVector{Real},
+  loc  ::StaticVector{3, T};
+  Δf   ::Real=0.,
+  b1Map::Real=0.,
+  γ    ::Real=γ¹H,
+) where {T<:Real}
+  throw("Not Implemented")
 end

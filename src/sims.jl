@@ -130,6 +130,60 @@ function blochsim!(
   return last(mh)
 end
 
+"""
+    mo = blochsim!(
+      mi ::AbstractArray{SVector{3, Tmi}},
+      b  ::AbstractArray{Db};  # Gs
+      mh ::AbstractArray{Dmh}=similar(b),
+      e1 ::Union{Nothing, Real}=nothing,
+      e2 ::Union{Nothing, Real}=nothing,
+      γdt::Real=_γdt,
+    ) where {
+      Tmi<:Real,
+      Db<:AbstractVector{SVector{3, T}},
+      Dmh<:AbstractVector{SVector{3, T}},
+    } where {T<:Real}
+
+  Bloch simulation.
+
+  *Arguments*:
+  - `mi` (Nd,), input spin states;
+  - `b` {(Nd,) ⊻ (1,)} of (nT,) Gauss, rotating frame 𝐵-effective sequences;
+  *Keyword Arguments*:
+  - `mo` (Nd,), in-place output spin states under `b`;
+  - `mh` (Nd,) of (nT,), in-place spin states histories under `b`;
+  - `e1`, T1 relaxation coeff, exp(-dt/T1);
+  - `e2`, T2 relaxation coeff, exp(-dt/T2);
+  - `γdt` Rad/Gauss, gyro-ratio times simulation temporal step size, dt;
+  *Outputs*:
+  - `mo`, (Nd,), output spin states;
+
+  Spin state full history, `mh`, is not explicitly returned, but only accessible
+  via the input in-palce argument.
+  A future version of this function may return the full history.
+"""
+function blochsim!(
+  mi ::AbstractArray{SVector{3, Tmi}},
+  b  ::AbstractArray{Db};  # Gs
+  mo ::AbstractArray{SVector{3, Tmi}}=similar(mi),
+  mh ::AbstractArray{Dmh}=fill(similar(b[end]), size(mi)),
+  e1 ::Union{Nothing, Real}=nothing,
+  e2 ::Union{Nothing, Real}=nothing,
+  γdt::Real=_γdt,                      # Rad/Gs ⇐ 2π⋅Hz/Gs⋅S
+) where {
+  Tmi<:Real,
+  Db<:AbstractVector{SVector{3, T}},
+  Dmh<:AbstractVector{SVector{3, T}},
+} where {T<:Real}
+  @assert size(mi) == size(b) == size(mh)
+
+  ((mi, b, mh)->blochsim!(mi, b; e1=e1, e2=e2, γdt=γdt, mh=mh)).(mi, b, mh)
+
+  mo .= last.(mh)
+  return mo
+end
+
+
 function ChainRulesCore.rrule(  # could we learn to live right.
   ::typeof(blochsim!),
   mi ::SVector{3, <:Real},

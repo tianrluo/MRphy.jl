@@ -32,6 +32,8 @@ vf(x) = [copy(x), copy(x)]
 vmi, vmie = vf(mi), vf(mie)
 vmo, vmoe = vf(mo), vf(moe)
 
+vb = vf(b)
+
 #= tests =#
 @testset "utils tests" for _ in [1]
   mo_res = uϕrot(mi, u, ϕ)
@@ -75,6 +77,20 @@ end
 
   # @code_warntype blochsim!(mi, b; mh=mh_res, e1=e1, e2=e2, γdt=_γdt,)
   # @code_warntype blochsim!(mi, b; mh=mh_res, γdt=_γdt,)
+
+  vmh_res, vmhe_res = (vf(similar([mi])) for _ in 1:2)
+  vmo_res = similar(vmi)
+  blochsim!(vmi, vb; mo=vmo_res, γdt=_γdt, mh=vmh_res)
+  vmoe_res = blochsim!(vmi, vb; e1=e1, e2=e2, γdt=_γdt, mh=vmhe_res)
+
+  @test vmo_res == last.(vmh_res)
+  @test vmo == last.(vmh_res)
+
+  @test vmoe_res == last.(vmhe_res)
+  @test vmoe == last.(vmhe_res)
+
+  # @code_warntype blochsim!(vmi, vb; mh=vmh_res, e1=e1, e2=e2, γdt=_γdt,)
+  # @code_warntype blochsim!(vmi, vb; mh=vmh_res, γdt=_γdt,)
 end
 
 @testset "rrules tests" for _ = [1]

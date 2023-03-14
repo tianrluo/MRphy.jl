@@ -3,6 +3,7 @@
 # `_pb` as `_pullback`.
 =#
 using ChainRulesCore
+using StructArrays
 
 export relax
 """
@@ -232,5 +233,52 @@ function ChainRulesCore.rrule(  # could we learn to live right.
   end
 
   return last(mh), blochsim!_pb
+end
+
+function ChainRulesCore.rrule(  # could we learn to live right.
+  ::typeof(blochsim!),
+  mi ::AbstractArray{SVector{3, Tmi}},
+  b  ::AbstractArray{Db};  # Gs
+  mo ::AbstractArray{SVector{3, Tmi}}=similar(mi),
+  mh ::AbstractArray{Dmh}=fill(similar(b[end]), size(mi)),
+  e1 ::Union{Nothing, Real}=nothing,
+  e2 ::Union{Nothing, Real}=nothing,
+  γdt::Real=_γdt,                      # Rad/Gs ⇐ 2π⋅Hz/Gs⋅S
+  ctx::AbstractVector{Dctx}
+  =fill(similar(b[end], CTX_blochsim{eltype(b[end][end])}), size(mi)),
+  h0 ::AbstractArray{SVector{3, Tmi}}=similar(mi),
+  db ::AbstractVector{Ddb}=similar(b),  # Gs
+) where {
+  Tmi<:Real,
+  Db<:AbstractVector{SVector{3, T}},
+  Dmh<:AbstractVector{SVector{3, T}},
+  Dctx<:AbstractVector{CTX_blochsim{T}},
+  Ddb<:AbstractVector{SVector{3, T}},
+} where {T<:Real}
+  @assert (size(mi) == size(b) == size(mo) == size(mh) ==
+    size(ctx) == size(h0) == size(db))
+
+  @inline(_rrule(mi, b, mh, ctx, db) =  # output only scalar pullbacks
+    rrule(blochsim!, mi, b; mh=mh, e1=e1, e2=e2, γdt=γdt, ctx=ctx, db=db)[2])
+
+  _blochsim!_pb = _rrule.(mi, b, mh, ctx, db)  # scalar pullbacks collection
+  mo .= last.(mh)
+
+  @inline function pb_unpack(_pb, h1)
+    _, h0, db = _pb(h1)
+    return (h0=h0, db=db)
+  end
+
+  """
+  Provided `d(mo)`, compute: `d(mi)`, `d(b)`.
+  The adpulses paper denotes `{d(mo), d(mi)}` as `{h1, h0}`, respectively.
+  """
+  function blochsim!_pb(h1) # If we turn back time,
+    sa = StructArray(h0=h0, db=db)  # sa for struct array
+    sa .= pb_unpack.(_blochsim!_pb, h1)
+    return NoTangent(), sa.h0, sa.db
+  end
+
+  return mo, blochsim!_pb
 end
 

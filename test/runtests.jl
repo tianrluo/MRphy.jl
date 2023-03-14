@@ -104,5 +104,8 @@ end
 
   @test mo ≈ mo_res
   @test moe ≈ moe_res
+
+  vmo_res, _ = rrule.(blochsim!, vmi, [[b]]; γdt=_γdt)
+  @test vmo ≈ vmo_res
 end
 

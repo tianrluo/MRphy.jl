@@ -1,4 +1,5 @@
 using Test, Random
+# using InteractiveUtils  # @code_warntype
 
 using LinearAlgebra, StaticArrays
 
@@ -12,18 +13,20 @@ e1, e2 = exp(-_dt/_T1), exp(-_dt/_T2)
 
 beff = SVector{3, T}(randn(3))
 u, ϕ = beff/norm(beff), -_γdt*norm(beff)
+b = [beff]
 
 mi = SVector{3, T}(randn(3)) |> x -> x/norm(x)
 mie = typeof(mi)(e2*mi[1], e2*mi[2], (1-e1)+e1*mi[3])  # sit and ...
 
 # 𝑅 = 𝑐𝑜𝑠𝜑⋅𝐼 -(𝑐𝑜𝑠𝜑-1)⋅(𝐮𝐮ᵀ) +𝑠𝑖𝑛𝜑⋅[𝐮]ₓ, rotation matrix from 𝐮/𝜑, axis/angle
 mo = cos(ϕ)*mi + ((1-cos(ϕ))*(u⋅mi))*u + sin(ϕ)*(u×mi)
-moe = cos(ϕ)*mie + ((1-cos(ϕ))*(u⋅mie))*u + sin(ϕ)*(u×mie)
+moe = typeof(mo)(e2*mo[1], e2*mo[2], (1-e1)+e1*mo[3])  # sit and ...
 
 # vectors
 vf(x) = [copy(x), copy(x)]
 
 vmi, vmie = vf(mi), vf(mie)
+vmo, vmoe = vf(mo), vf(moe)
 
 #= tests =#
 @testset "utils tests" for _ in [1]
@@ -55,4 +58,17 @@ end
 
   @test mi ≈ mi_res
   @test vmi ≈ vmi_res
+
+  mh_res, mhe_res = (similar([mi]) for _ in 1:2)
+  mo_res = blochsim!(mi, b; γdt=_γdt, mh=mh_res)
+  moe_res = blochsim!(mi, b; e1=e1, e2=e2, γdt=_γdt, mh=mhe_res)
+
+  @test mo_res === mh_res[end]
+  @test mo == mh_res[end]
+
+  @test moe_res === mhe_res[end]
+  @test moe == mhe_res[end]
+
+  # @code_warntype blochsim!(mi, b; mh=mh_res, e1=e1, e2=e2, γdt=_γdt,)
+  # @code_warntype blochsim!(mi, b; mh=mh_res, γdt=_γdt,)
 end

@@ -1,12 +1,15 @@
 using Test, Random
 # using InteractiveUtils  # @code_warntype
 
-using LinearAlgebra, StaticArrays
+using LinearAlgebra, StaticArrays, ChainRulesCore
+using ChainRulesCore: rrule
+using ChainRulesTestUtils
 
 using MRphy
 using MRphy: _γdt, _dt, _T1, _T2, irelax
 
 const T = Float64
+const T_alter = Float32
 
 # scalars
 e1, e2 = exp(-_dt/_T1), exp(-_dt/_T2)
@@ -14,6 +17,7 @@ e1, e2 = exp(-_dt/_T1), exp(-_dt/_T2)
 beff = SVector{3, T}(randn(3))
 u, ϕ = beff/norm(beff), -_γdt*norm(beff)
 b = [beff]
+b2 = [beff, beff]
 
 mi = SVector{3, T}(randn(3)) |> x -> x/norm(x)
 mie = typeof(mi)(e2*mi[1], e2*mi[2], (1-e1)+e1*mi[3])  # sit and ...
@@ -72,3 +76,17 @@ end
   # @code_warntype blochsim!(mi, b; mh=mh_res, e1=e1, e2=e2, γdt=_γdt,)
   # @code_warntype blochsim!(mi, b; mh=mh_res, γdt=_γdt,)
 end
+
+@testset "rrules tests" for _ = [1]
+  test_rrule(blochsim!, mi, b; fkwargs=(γdt=T_alter(_γdt),))
+  test_rrule(blochsim!, mi, b; fkwargs=(e1=e1, e2=e2, γdt=T_alter(_γdt),))
+  test_rrule(blochsim!, mi, b2; fkwargs=(γdt=T_alter(_γdt),))
+  test_rrule(blochsim!, mi, b2; fkwargs=(e1=e1, e2=e2, γdt=T_alter(_γdt),))
+
+  mo_res, _ = rrule(blochsim!, mi, b; γdt=_γdt)
+  moe_res, _ = rrule(blochsim!, mi, b; e1=e1, e2=e2, γdt=_γdt)
+
+  @test mo ≈ mo_res
+  @test moe ≈ moe_res
+end
+

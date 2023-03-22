@@ -247,7 +247,7 @@ function ChainRulesCore.rrule(  # could we learn to live right.
   ctx::AbstractVector{Dctx}
   =fill(similar(b[end], CTX_blochsim{eltype(b[end][end])}), size(mi)),
   h0 ::AbstractArray{SVector{3, Tmi}}=similar(mi),
-  db ::AbstractVector{Ddb}=similar(b),  # Gs
+  db ::AbstractVector{Db}=fill(similar(b[end]), size(mi)),  # Gs
 ) where {
   Tmi<:Real,
   Db<:AbstractVector{SVector{3, T}},
@@ -264,19 +264,19 @@ function ChainRulesCore.rrule(  # could we learn to live right.
   _blochsim!_pb = _rrule.(mi, b, mh, ctx, db)  # scalar pullbacks collection
   mo .= last.(mh)
 
-  @inline function pb_unpack(_pb, h1)
-    _, h0, db = _pb(h1)
-    return (h0=h0, db=db)
+  function pb_unpack(_pb, h1)
+    _, _h0_, _db_ = _pb(h1)
+    return (_h0=_h0_, _db=_db_)
   end
-
   """
   Provided `d(mo)`, compute: `d(mi)`, `d(b)`.
   The adpulses paper denotes `{d(mo), d(mi)}` as `{h1, h0}`, respectively.
   """
   function blochsim!_pb(h1) # If we turn back time,
-    sa = StructArray(h0=h0, db=db)  # sa for struct array
+
+    sa = StructArray(_h0=h0, _db=db)  # sa for struct array
     sa .= pb_unpack.(_blochsim!_pb, h1)
-    return NoTangent(), sa.h0, sa.db
+    return NoTangent(), sa._h0, sa._db
   end
 
   return mo, blochsim!_pb

@@ -32,7 +32,7 @@ vf(x) = [copy(x), copy(x)]
 vmi, vmie = vf(mi), vf(mie)
 vmo, vmoe = vf(mo), vf(moe)
 
-vb = vf(b)
+vb, vb2 = vf(b), vf(b2)
 
 #= tests =#
 @testset "utils tests" for _ in [1]
@@ -98,6 +98,8 @@ end
   test_rrule(blochsim!, mi, b; fkwargs=(e1=e1, e2=e2, γdt=T_alter(_γdt),))
   test_rrule(blochsim!, mi, b2; fkwargs=(γdt=T_alter(_γdt),))
   test_rrule(blochsim!, mi, b2; fkwargs=(e1=e1, e2=e2, γdt=T_alter(_γdt),))
+# vmoe_res, _ = rrule(blochsim!, vmi, vb; e1=e1, e2=e2, γdt=_γdt)
+test_rrule(blochsim!, vmi, vb; fkwargs=(γdt=T_alter(_γdt),))
 
   mo_res, _ = rrule(blochsim!, mi, b; γdt=_γdt)
   moe_res, _ = rrule(blochsim!, mi, b; e1=e1, e2=e2, γdt=_γdt)
@@ -105,7 +107,14 @@ end
   @test mo ≈ mo_res
   @test moe ≈ moe_res
 
-  vmo_res, _ = rrule.(blochsim!, vmi, [[b]]; γdt=_γdt)
+  test_rrule(blochsim!, vmi, vb; fkwargs=(γdt=T_alter(_γdt),))
+  # test_rrule(blochsim!, vmi, vb; fkwargs=(e1=e1, e2=e2, γdt=T_alter(_γdt),))
+  # test_rrule(blochsim!, vmi, vb2; fkwargs=(γdt=T_alter(_γdt),))
+  # test_rrule(blochsim!, vmi, vb2; fkwargs=(e1=e1, e2=e2, γdt=T_alter(_γdt),))
+
+  vmo_res, _ = rrule(blochsim!, vmi, vb; γdt=_γdt)
+  vmoe_res, _ = rrule(blochsim!, vmi, vb; e1=e1, e2=e2, γdt=_γdt)
   @test vmo ≈ vmo_res
+  @test vmoe ≈ vmoe_res
 end
 
